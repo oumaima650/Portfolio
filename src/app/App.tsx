@@ -8,7 +8,7 @@ export default function App() {
   const [hoveredProject, setHoveredProject] = useState<number | null>(null);
   const [showIntro, setShowIntro] = useState(true);
   const [introStep, setIntroStep] = useState(1);
-  const [isNavFixed, setIsNavFixed] = useState(false);
+  const [activeSection, setActiveSection] = useState('home');
   const heroRef = useRef<HTMLDivElement>(null);
 
   // Intro animation sequence
@@ -35,17 +35,31 @@ export default function App() {
     };
   }, []);
 
-  // Detect scroll to fix navbar at top
+  // Detect active section on scroll
   useEffect(() => {
-    const handleScroll = () => {
-      if (heroRef.current) {
-        const heroBottom = heroRef.current.getBoundingClientRect().bottom;
-        setIsNavFixed(heroBottom <= 0);
-      }
+    const observerOptions = {
+      root: null,
+      rootMargin: '-50% 0px -50% 0px', // Detect when middle of section passes middle of screen
+      threshold: 0
     };
 
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    const handleIntersect = (entries: IntersectionObserverEntry[]) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          setActiveSection(entry.target.id);
+        }
+      });
+    };
+
+    const observer = new IntersectionObserver(handleIntersect, observerOptions);
+    const sections = ['home', 'about', 'skills', 'experience', 'projects', 'activities', 'contact'];
+    
+    sections.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) observer.observe(el);
+    });
+
+    return () => observer.disconnect();
   }, []);
 
   // Parallax effect for hero section
@@ -174,6 +188,7 @@ export default function App() {
 
       {/* FRAME 1: FULL-SCREEN HERO SECTION */}
       <motion.section
+        id="home"
         ref={heroRef}
         className="relative h-screen bg-black overflow-hidden"
         initial={{ opacity: 0 }}
@@ -289,90 +304,47 @@ export default function App() {
             </motion.div>
           </motion.h1>
 
-          {/* Navigation Bar - Centered and Slide up from bottom / Fixed on scroll */}
+          {/* Navigation Bar - Bottom Positioned */}
           <motion.div
-            className={`flex justify-center ${isNavFixed ? 'fixed top-4 left-0 right-0 z-50' : ''}`}
-            animate={{
-              y: isNavFixed ? 0 : 0,
-            }}
-            transition={{ duration: 0.3 }}
+            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 flex justify-center w-full"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: showIntro ? 0 : 1, y: showIntro ? 20 : 0 }}
+            transition={{ duration: 0.8, delay: showIntro ? 0 : 0.8 }}
           >
             <motion.nav
-              className="inline-flex items-center gap-2 md:gap-4 px-4 md:px-6 py-3 md:py-4 rounded-full"
+              className="inline-flex items-center gap-1 md:gap-2 px-3 md:px-4 py-2 md:py-2.5 rounded-full"
               style={{
                 background: 'rgba(0, 0, 0, 0.8)',
                 backdropFilter: 'blur(20px)',
                 border: '1px solid rgba(255, 255, 255, 0.1)',
+                boxShadow: '0 20px 40px rgba(0,0,0,0.4)'
               }}
-              initial={{ opacity: 0, y: 50 }}
-              animate={{ opacity: showIntro ? 0 : 1, y: showIntro ? 50 : 0 }}
-              transition={{ duration: 0.8, delay: showIntro ? 0 : 0.8 }}
             >
-            <motion.a
-              href="#home"
-              className="px-4 md:px-6 py-2 rounded-full bg-[#D4537E] text-white text-xs md:text-sm uppercase tracking-wider relative overflow-hidden group"
-              style={{ fontFamily: "'DM Sans', sans-serif", fontWeight: 700 }}
-              whileHover={{
-                scale: 1.05,
-                boxShadow: '0 0 20px rgba(212, 83, 126, 0.6)',
-              }}
-              transition={{ type: "spring", stiffness: 300 }}
-            >
-              HOME
-            </motion.a>
-            <motion.a
-              href="#about"
-              className="px-3 md:px-4 py-2 text-white/80 hover:text-white text-xs md:text-sm uppercase tracking-wider transition-colors relative group"
-              style={{ fontFamily: "'DM Sans', sans-serif", fontWeight: 600 }}
-            >
-              ABOUT
-              <motion.div
-                className="absolute bottom-1 left-0 h-px bg-[#D4537E]"
-                initial={{ width: 0 }}
-                whileHover={{ width: "100%" }}
-                transition={{ duration: 0.3 }}
-              />
-            </motion.a>
-            <motion.a
-              href="#projects"
-              className="px-3 md:px-4 py-2 text-white/80 hover:text-white text-xs md:text-sm uppercase tracking-wider transition-colors relative group"
-              style={{ fontFamily: "'DM Sans', sans-serif", fontWeight: 600 }}
-            >
-              PROJECTS
-              <motion.div
-                className="absolute bottom-1 left-0 h-px bg-[#D4537E]"
-                initial={{ width: 0 }}
-                whileHover={{ width: "100%" }}
-                transition={{ duration: 0.3 }}
-              />
-            </motion.a>
-            <motion.a
-              href="#experience"
-              className="hidden md:block px-4 py-2 text-white/80 hover:text-white text-sm uppercase tracking-wider transition-colors relative group"
-              style={{ fontFamily: "'DM Sans', sans-serif", fontWeight: 600 }}
-            >
-              EXPERIENCE
-              <motion.div
-                className="absolute bottom-1 left-0 h-px bg-[#D4537E]"
-                initial={{ width: 0 }}
-                whileHover={{ width: "100%" }}
-                transition={{ duration: 0.3 }}
-              />
-            </motion.a>
-            <motion.a
-              href="#contact"
-              className="px-3 md:px-4 py-2 text-white/80 hover:text-white text-xs md:text-sm uppercase tracking-wider transition-colors relative group"
-              style={{ fontFamily: "'DM Sans', sans-serif", fontWeight: 600 }}
-            >
-              CONTACT
-              <motion.div
-                className="absolute bottom-1 left-0 h-px bg-[#D4537E]"
-                initial={{ width: 0 }}
-                whileHover={{ width: "100%" }}
-                transition={{ duration: 0.3 }}
-              />
-            </motion.a>
-          </motion.nav>
+              {[
+                { label: 'HOME', id: 'home' },
+                { label: 'ABOUT', id: 'about' },
+                { label: 'SKILLS', id: 'skills' },
+                { label: 'EXPERIENCE', id: 'experience' },
+                { label: 'PROJECTS', id: 'projects' },
+                { label: 'ACTIVITIES', id: 'activities' },
+                { label: 'CONTACT', id: 'contact' },
+              ].map((link) => (
+                <motion.a
+                  key={link.id}
+                  href={`#${link.id}`}
+                  className={`px-3 md:px-5 py-2 rounded-full text-[10px] md:text-[11px] uppercase tracking-wider transition-all relative group ${
+                    activeSection === link.id 
+                      ? 'bg-[#D4537E] text-white shadow-[0_0_15px_rgba(212,83,126,0.5)]' 
+                      : 'text-white/70 hover:text-white hover:bg-white/5'
+                  }`}
+                  style={{ fontFamily: "'DM Sans', sans-serif", fontWeight: 700 }}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  {link.label}
+                </motion.a>
+              ))}
+            </motion.nav>
           </motion.div>
         </div>
       </motion.section>
@@ -586,6 +558,7 @@ export default function App() {
 
       {/* FRAME 3: SKILLS SECTION */}
       <motion.section
+        id="skills"
         className="relative py-16 md:py-24 bg-[#F0EEE8] overflow-x-hidden"
         initial={{ opacity: 0 }}
         whileInView={{ opacity: 1 }}
@@ -1095,6 +1068,7 @@ export default function App() {
 
       {/* EXTRACURRICULAR ACTIVITIES SECTION */}
       <motion.section
+        id="activities"
         className="relative py-20 md:py-32 bg-white overflow-hidden"
         initial={{ opacity: 0 }}
         whileInView={{ opacity: 1 }}
