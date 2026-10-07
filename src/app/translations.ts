@@ -92,6 +92,7 @@ export const t = {
     cvDownload: 'Télécharger le CV',
     cvFr: 'Version Française',
     cvEn: 'English Version',
+    cvTagline: 'Disponible en français et en anglais.',
 
     // Modal
     modalDetails: 'Details',
@@ -190,6 +191,7 @@ export const t = {
     cvDownload: 'Download CV',
     cvFr: 'French Version',
     cvEn: 'English Version',
+    cvTagline: 'Available in French and English.',
 
     // Modal
     modalDetails: 'Details',
@@ -250,6 +252,7 @@ export const DATA = {
         fullDetails: "Conception d'une solution open-source remplacant un connecteur commercial payant, pour utiliser PostgreSQL/PostGIS comme stockage spatial des Modeles Metiers Autodesk AutoCAD Map 3D.\n\n• Developpement en Python d'un moteur de traduction des metadonnees Autodesk en schemas PostGIS et d'un service de synchronisation temps reel.\n• Mise en place d'un monitoring Docker Compose (Prometheus, Grafana) et d'un installateur Windows automatise.",
         tech: ['Python', 'PostgreSQL', 'PostGIS', 'Docker', 'Prometheus', 'Grafana'],
         github: 'https://github.com/oumaima650',
+        images: [],
       },
       {
         id: 'exp-2',
@@ -262,6 +265,7 @@ export const DATA = {
         fullDetails: "Conception et developpement d'une application web de gestion des comptes rendus d'activite (CRA) selon une architecture MVC avec Laravel et MySQL.\n\n• Mise en place d'une authentification securisee via Keycloak (OAuth2) et d'un systeme de gestion des roles et des acces.\n• Automatisation de la saisie, amelioration de la tracabilite des activites et optimisation de la gestion des donnees.",
         tech: ['Laravel', 'MySQL', 'Keycloak', 'OAuth2', 'PHP', 'MVC'],
         github: 'https://github.com/oumaima650',
+        images: [],
       },
     ],
     en: [
@@ -302,6 +306,8 @@ export const DATA = {
         fullDetails: "CRM pour agences immobilieres : suivi des clients, priorisation des leads et automatisation du suivi commercial.\n\n• Chatbot IA et moteur RAG (Spring AI, pgvector) analysant les documents et attribuant aux leads un score de 0 a 100.\n• Deux applications React (agence et client) avec carte interactive, tableaux de bord et acces par roles (JWT).",
         tech: ['Spring Boot 3', 'React', 'Spring AI', 'RAG', 'pgvector', 'JWT'],
         github: 'https://github.com/oumaima650',
+        date: 'Mai 2026',
+        images: [],
       },
       {
         id: 'proj-2',
@@ -311,6 +317,8 @@ export const DATA = {
         fullDetails: "Service d'abonnements pour le transport urbain : souscription, pause, suspension et remboursement calcule au prorata.\n\n• Architecture orientee evenements avec 13 types d'evenements Kafka et reprise automatique sur panne (Resilience4j).\n• Conteneurisation Docker multi-stage et deploiement automatise par un pipeline CI/CD GitHub Actions.",
         tech: ['Spring Boot 3', 'Kafka', 'Docker', 'CI/CD', 'Kubernetes', 'Resilience4j'],
         github: 'https://github.com/oumaima650',
+        date: 'Mai 2026',
+        images: [],
       },
       {
         id: 'proj-3',
@@ -320,6 +328,8 @@ export const DATA = {
         fullDetails: "Modele predisant les tempetes geomagnetiques 6h a l'avance pour proteger les reseaux electriques et les satellites.\n\n• Pipeline de 43 207 observations NASA sur 5 ans et Random Forest optimise pour le rappel : 98,72% (PR-AUC 0,767).\n• API REST FastAPI et interface Streamlit, conteneurisees et orchestrees avec Docker Compose.",
         tech: ['Python', 'Scikit-learn', 'FastAPI', 'Docker', 'Streamlit', 'Pandas'],
         github: 'https://github.com/oumaima650',
+        date: 'Avril 2026',
+        images: [],
       },
     ],
     en: [
@@ -331,6 +341,8 @@ export const DATA = {
         fullDetails: "CRM for real estate agencies: client tracking, lead prioritization, and commercial follow-up automation.\n\n• AI chatbot and RAG engine (Spring AI, pgvector) analyzing documents and assigning leads a score from 0 to 100.\n• Two React apps (agency and client) with interactive map, dashboards, and role-based access (JWT).",
         tech: ['Spring Boot 3', 'React', 'Spring AI', 'RAG', 'pgvector', 'JWT'],
         github: 'https://github.com/oumaima650',
+        date: 'May 2026',
+        images: [],
       },
       {
         id: 'proj-2',
@@ -340,6 +352,8 @@ export const DATA = {
         fullDetails: "Subscription service for urban transit: subscribe, pause, suspend, and prorated refund calculation.\n\n• Event-driven architecture with 13 Kafka event types and automatic failure recovery (Resilience4j).\n• Multi-stage Docker containerization and automated deployment via CI/CD GitHub Actions pipeline.",
         tech: ['Spring Boot 3', 'Kafka', 'Docker', 'CI/CD', 'Kubernetes', 'Resilience4j'],
         github: 'https://github.com/oumaima650',
+        date: 'May 2026',
+        images: [],
       },
       {
         id: 'proj-3',
@@ -349,6 +363,8 @@ export const DATA = {
         fullDetails: "Model predicting geomagnetic storms 6h in advance to protect power grids and satellites.\n\n• Pipeline on 43,207 NASA observations over 5 years and Random Forest optimized for recall: 98.72% (PR-AUC 0.767).\n• REST FastAPI and Streamlit interface, containerized and orchestrated with Docker Compose.",
         tech: ['Python', 'Scikit-learn', 'FastAPI', 'Docker', 'Streamlit', 'Pandas'],
         github: 'https://github.com/oumaima650',
+        date: 'April 2026',
+        images: [],
       },
     ],
   },

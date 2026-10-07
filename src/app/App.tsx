@@ -12,12 +12,55 @@ const PROJECT_IMAGES: Record<string, string> = {
   'proj-3': heroImg,
 };
 
+// ── IMAGE GALLERY ─────────────────────────────────────────────────────────────
+function ImageGallery({ images, title }: { images: string[]; title: string }) {
+  const [active, setActive] = useState(0);
+
+  return (
+    <div className="relative bg-[#F0EEE8] border-b border-black/5">
+      {/* Main image */}
+      <div className="relative h-52 md:h-72 overflow-hidden">
+        <AnimatePresence mode="wait">
+          <motion.img
+            key={active}
+            src={images[active]}
+            alt={`${title} ${active + 1}`}
+            className="w-full h-full object-cover"
+            initial={{ opacity: 0, scale: 1.03 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.98 }}
+            transition={{ duration: 0.3 }}
+          />
+        </AnimatePresence>
+        {/* Counter */}
+        <div className="absolute bottom-3 right-4 bg-black/50 backdrop-blur-sm text-white text-[10px] font-bold px-2.5 py-1 rounded-full">
+          {active + 1} / {images.length}
+        </div>
+      </div>
+      {/* Thumbnails */}
+      {images.length > 1 && (
+        <div className="flex gap-2 px-6 py-3 overflow-x-auto">
+          {images.map((src, i) => (
+            <button
+              key={i}
+              onClick={() => setActive(i)}
+              className={`flex-shrink-0 w-14 h-10 rounded-lg overflow-hidden border-2 transition-all ${i === active ? 'border-[#D4537E]' : 'border-transparent opacity-50 hover:opacity-80'}`}
+            >
+              <img src={src} alt="" className="w-full h-full object-cover" />
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── CV DOWNLOAD BUTTON ────────────────────────────────────────────────────────
 function CvDownloadButton({ T }: { T: typeof import('./translations').t['fr'] }) {
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="relative inline-block mt-6">
+    <div className="relative inline-block">
       <motion.button
         onClick={() => setOpen((o) => !o)}
         className="flex items-center gap-3 px-7 py-3.5 rounded-full bg-[#0D0D0D] text-white font-bold text-sm hover:bg-[#D4537E] transition-colors group"
@@ -116,12 +159,17 @@ export default function App() {
 
   const nameLines = ['OUMAIMA', 'AMEZIANE'];
   const nameContainer = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { staggerChildren: 0.05, delayChildren: 0.3 } },
+    hidden: {},
+    visible: { transition: { staggerChildren: 0.18, delayChildren: 0.2 } },
   };
-  const letterVariant = {
-    hidden: { y: 80, opacity: 0 },
-    visible: { y: 0, opacity: 1, transition: { type: 'spring', damping: 12, stiffness: 100 } },
+  const lineVariant = {
+    hidden: { y: '110%', opacity: 0, skewY: 4 },
+    visible: {
+      y: '0%',
+      opacity: 1,
+      skewY: 0,
+      transition: { duration: 0.9, ease: [0.16, 1, 0.3, 1] },
+    },
   };
 
   // Language switcher button
@@ -191,27 +239,23 @@ export default function App() {
         </motion.div>
 
         {/* Name */}
-        <div className="absolute bottom-[90px] md:bottom-0 left-0 right-0 z-30 px-5 md:px-10 md:pb-10 overflow-hidden">
+        <div className="absolute bottom-[90px] md:bottom-0 left-0 right-0 z-30 px-5 md:px-10 md:pb-10">
           <motion.h1
-            className="text-[28px] md:text-[52px] lg:text-[78px] leading-[0.87] mb-14 md:mb-28 uppercase"
-            style={{ fontFamily: "'DM Sans', sans-serif", fontWeight: 900, letterSpacing: '-0.02em' }}
+            className="text-[36px] md:text-[62px] lg:text-[88px] leading-[0.85] mb-14 md:mb-28 uppercase"
+            style={{ fontFamily: "'DM Sans', sans-serif", fontWeight: 900, letterSpacing: '-0.03em' }}
             variants={nameContainer}
             initial="hidden"
             animate="visible"
           >
             {nameLines.map((line, li) => (
-              <div key={li} className="block">
-                {line.split('').map((letter, lei) => (
-                  <motion.span
-                    key={`${li}-${lei}`}
-                    className="inline-block"
-                    style={{ color: '#D4537E' }}
-                    variants={letterVariant}
-                    whileHover={{ y: -4, transition: { type: 'spring', stiffness: 300 } }}
-                  >
-                    {letter}
-                  </motion.span>
-                ))}
+              <div key={li} className="block overflow-hidden">
+                <motion.span
+                  className="block"
+                  style={{ color: '#D4537E' }}
+                  variants={lineVariant}
+                >
+                  {line}
+                </motion.span>
               </div>
             ))}
           </motion.h1>
@@ -301,9 +345,9 @@ export default function App() {
         <div className="max-w-5xl mx-auto px-4 md:px-10 relative z-10">
           <div className="flex flex-col gap-16 md:gap-28">
 
-            <div className="flex flex-col items-center text-center max-w-3xl mx-auto">
+            <div className="flex flex-col items-start text-left max-w-3xl mx-auto w-full">
               <motion.div initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.9 }}>
-                <div className="flex flex-col items-center gap-2 mb-8">
+                <div className="flex flex-col items-start gap-2 mb-8">
                   <div className="h-[2px] w-10 bg-[#D4537E]" />
                   <span className="text-[10px] md:text-xs uppercase tracking-[0.4em] font-black text-[#D4537E]">{T.aboutTag}</span>
                 </div>
@@ -378,8 +422,38 @@ export default function App() {
                   </span>
                 </motion.h2>
 
-                {/* CV Download button */}
-                <CvDownloadButton T={T} />
+                {/* CV Download — left aligned with phrase */}
+                <motion.div
+                  className="flex flex-col sm:flex-row items-start sm:items-center gap-5 mt-8"
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.6, delay: 1.1, ease: 'easeOut' }}
+                >
+                  {/* Phrase */}
+                  <div className="flex flex-col gap-1 text-left">
+                    <span className="text-[10px] uppercase tracking-[0.3em] text-[#D4537E] font-black">
+                      {lang === 'en' ? 'My resume' : 'Mon CV'}
+                    </span>
+                    <p className="text-[#6B6B6B] text-xs md:text-sm font-medium leading-snug max-w-[200px]" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                      {T.cvTagline}
+                    </p>
+                  </div>
+
+                  {/* Arrow */}
+                  <motion.div
+                    className="hidden sm:flex items-center text-[#D4537E]/40"
+                    animate={{ x: [0, 6, 0] }}
+                    transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
+                  >
+                    <svg width="32" height="12" viewBox="0 0 32 12" fill="none">
+                      <path d="M0 6h28M24 1l6 5-6 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </motion.div>
+
+                  {/* Button */}
+                  <CvDownloadButton T={T} />
+                </motion.div>
               </motion.div>
             </div>
 
@@ -567,24 +641,73 @@ export default function App() {
         initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true, amount: 0.1 }} transition={{ duration: 0.9 }}
       >
         <div className="max-w-5xl mx-auto px-4 md:px-8">
-          <div className="mb-7 md:mb-10">
+          {/* Header animé */}
+          <motion.div
+            className="mb-10 md:mb-14"
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+          >
             <h2 className="text-[32px] md:text-[48px] leading-none mb-2" style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700 }}>{T.skillsTitle}</h2>
-            <div className="w-20 h-1 bg-[#D4537E]" />
-          </div>
-          <div className="space-y-5 md:space-y-6">
-            {T.skillsCategories.map(({ label, primary, secondary }) => (
-              <div key={label}>
-                <h3 className="text-[10px] md:text-xs uppercase tracking-wider mb-3 font-semibold text-[#0D0D0D]" style={{ fontFamily: "'DM Sans', sans-serif" }}>{label}</h3>
-                <div className="flex gap-2 flex-wrap">
-                  {primary.map((s) => (
-                    <span key={s} className="px-3 md:px-4 py-1.5 rounded-full bg-[#D4537E] text-white text-[10px] md:text-xs font-semibold" style={{ fontFamily: "'DM Sans', sans-serif" }}>{s}</span>
-                  ))}
-                  {secondary.map((s) => (
-                    <span key={s} className="px-3 md:px-4 py-1.5 rounded-full border-2 border-[#D4537E] bg-transparent text-[10px] md:text-xs font-medium text-[#0D0D0D]" style={{ fontFamily: "'DM Sans', sans-serif" }}>{s}</span>
-                  ))}
-                </div>
-              </div>
-            ))}
+            <motion.div
+              className="h-1 bg-[#D4537E] rounded-full"
+              initial={{ width: 0 }}
+              whileInView={{ width: 80 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.7, delay: 0.3, ease: 'easeOut' }}
+            />
+          </motion.div>
+
+          <div className="space-y-8 md:space-y-10">
+            {T.skillsCategories.map(({ label, primary, secondary }, catIdx) => {
+              const allSkills = [...primary, ...secondary];
+              return (
+                <motion.div
+                  key={label}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, amount: 0.3 }}
+                  transition={{ duration: 0.5, delay: catIdx * 0.07 }}
+                >
+                  {/* Category label */}
+                  <div className="flex items-center gap-3 mb-4">
+                    <span className="text-[10px] md:text-xs uppercase tracking-[0.28em] font-black text-[#0D0D0D]/50" style={{ fontFamily: "'DM Sans', sans-serif" }}>{label}</span>
+                    <div className="flex-1 h-px bg-[#D4537E]/15" />
+                  </div>
+
+                  {/* Badges — all unified style, stagger in */}
+                  <motion.div
+                    className="flex gap-2 flex-wrap"
+                    initial="hidden"
+                    whileInView="visible"
+                    viewport={{ once: true, amount: 0.2 }}
+                    variants={{
+                      hidden: {},
+                      visible: { transition: { staggerChildren: 0.04, delayChildren: catIdx * 0.07 } },
+                    }}
+                  >
+                    {allSkills.map((s) => {
+                      return (
+                        <motion.span
+                          key={s}
+                          className="skill-badge px-3 md:px-4 py-1.5 rounded-full text-[10px] md:text-xs font-semibold cursor-default select-none bg-white text-[#0D0D0D] border border-black/10"
+                          style={{ fontFamily: "'DM Sans', sans-serif" }}
+                          variants={{
+                            hidden: { opacity: 0, scale: 0.7, y: 10 },
+                            visible: { opacity: 1, scale: 1, y: 0, transition: { duration: 0.3, ease: 'easeOut' } },
+                          }}
+                          whileHover={{ scale: 1.08, y: -2 }}
+                          whileTap={{ scale: 0.95 }}
+                        >
+                          {s}
+                        </motion.span>
+                      );
+                    })}
+                  </motion.div>
+                </motion.div>
+              );
+            })}
           </div>
         </div>
       </motion.section>
@@ -930,48 +1053,117 @@ export default function App() {
       {/* ── MODAL ── */}
       <AnimatePresence>
         {isModalOpen && selectedItem && (
-          <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 md:p-7">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={closeModal} className="absolute inset-0 bg-black/80 backdrop-blur-md" />
+          <div className="fixed inset-0 z-[9999] flex items-end md:items-center justify-center">
+            {/* Backdrop */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.92, y: 16 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.92, y: 16 }}
-              className="relative w-full max-w-4xl max-h-[88vh] bg-[#FDFDFB] rounded-[24px] overflow-hidden shadow-2xl flex flex-col md:flex-row"
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={closeModal}
+              className="absolute inset-0 bg-black/75 backdrop-blur-sm"
+            />
+
+            {/* Panel — full height on desktop, bottom sheet on mobile */}
+            <motion.div
+              initial={{ opacity: 0, y: 60 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 60 }}
+              transition={{ duration: 0.35, ease: [0.32, 0.72, 0, 1] }}
+              className="relative w-full md:max-w-5xl md:max-h-[90vh] max-h-[92vh] bg-white md:rounded-[28px] rounded-t-[28px] overflow-hidden shadow-2xl flex flex-col"
               onClick={(e) => e.stopPropagation()}
             >
-              <button onClick={closeModal} className="absolute top-4 right-4 z-50 p-2 rounded-full bg-black/10 hover:bg-black/20 text-black transition-colors">
-                <X size={20} />
+              {/* Close */}
+              <button onClick={closeModal} className="absolute top-4 right-4 z-50 w-9 h-9 rounded-full bg-black/8 hover:bg-black/15 flex items-center justify-center transition-colors">
+                <X size={16} />
               </button>
-              <div className="md:w-2/5 relative h-[240px] md:h-auto bg-[#F0EEE8] overflow-hidden">
-                <img src={selectedItem.image || profileImg} alt={selectedItem.title} className="w-full h-full object-cover" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex flex-col justify-end p-6 text-white">
-                  <div className="text-[10px] uppercase tracking-widest opacity-75 mb-1">{selectedItem.category || selectedItem.type}</div>
-                  <h2 className="text-2xl md:text-3xl font-bold leading-none" style={{ fontFamily: "'Playfair Display', serif" }}>{selectedItem.title}</h2>
+
+              {/* Header band */}
+              <div className="bg-[#0D0D0D] px-6 md:px-10 pt-8 pb-6 flex-shrink-0">
+                <div className="flex items-start gap-4">
+                  {/* Icon / initial */}
+                  <div className="w-12 h-12 rounded-2xl bg-[#D4537E] flex items-center justify-center flex-shrink-0">
+                    <span className="text-white font-black text-lg" style={{ fontFamily: "'Playfair Display', serif" }}>
+                      {selectedItem.title?.[0]}
+                    </span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[10px] uppercase tracking-[0.3em] text-[#D4537E] font-black mb-1">
+                      {selectedItem.category || selectedItem.type}
+                    </div>
+                    <h2 className="text-white text-2xl md:text-3xl font-black leading-tight truncate" style={{ fontFamily: "'Playfair Display', serif" }}>
+                      {selectedItem.title}
+                    </h2>
+                    <div className="flex items-center gap-3 mt-2 flex-wrap">
+                      {selectedItem.company && (
+                        <span className="text-[#D4537E] text-xs font-bold">{selectedItem.company}</span>
+                      )}
+                      {(selectedItem.date || selectedItem.location) && (
+                        <span className="text-white/40 text-xs">
+                          {selectedItem.date}{selectedItem.location ? ` · ${selectedItem.location}` : ''}
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
-              <div className="md:w-3/5 p-6 md:p-10 overflow-y-auto bg-white">
-                <div className="max-w-xl">
-                  <div className="mb-6">
-                    {selectedItem.company && <div className="text-base font-bold text-[#D4537E] mb-0.5">{selectedItem.company}</div>}
-                    <div className="text-xs text-black/45 font-medium">{selectedItem.date}{selectedItem.location ? ` · ${selectedItem.location}` : ''}</div>
-                  </div>
-                  <div className="mb-8">
-                    <h3 className="text-base font-bold mb-3 text-black">{T.modalDetails}</h3>
-                    <p className="text-[#6B6B6B] leading-relaxed whitespace-pre-line text-sm">{selectedItem.fullDetails || selectedItem.description}</p>
-                  </div>
-                  {selectedItem.tech && (
-                    <div className="mb-8">
-                      <h4 className="text-[10px] uppercase tracking-[0.2em] font-bold text-[#D4537E] mb-3">{T.modalTech}</h4>
-                      <div className="flex flex-wrap gap-1.5">
-                        {selectedItem.tech.map((tech: string) => (
-                          <span key={tech} className="px-3 py-1.5 bg-[#F8F7F2] border border-[#D4537E]/20 rounded-full text-[10px] font-bold text-black uppercase tracking-wider">{tech}</span>
-                        ))}
-                      </div>
+
+              {/* Scrollable body */}
+              <div className="flex-1 overflow-y-auto">
+                {/* Image gallery — shows if images exist */}
+                {selectedItem.images && selectedItem.images.length > 0 && (
+                  <ImageGallery images={selectedItem.images} title={selectedItem.title} />
+                )}
+
+                {/* Content */}
+                <div className="px-6 md:px-10 py-7 grid grid-cols-1 md:grid-cols-[1fr_280px] gap-8">
+                  {/* Left: description */}
+                  <div>
+                    <h3 className="text-xs uppercase tracking-[0.25em] font-black text-[#D4537E] mb-3">{T.modalDetails}</h3>
+                    <div className="text-[#4A4A4A] text-sm leading-relaxed whitespace-pre-line" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                      {selectedItem.fullDetails || selectedItem.description}
                     </div>
-                  )}
-                  <div className="flex flex-wrap gap-3 pt-5 border-t border-black/5">
+                  </div>
+
+                  {/* Right: tech + link */}
+                  <div className="flex flex-col gap-6">
+                    {/* Tech stack */}
+                    {selectedItem.tech && selectedItem.tech.length > 0 && (
+                      <div>
+                        <h4 className="text-xs uppercase tracking-[0.25em] font-black text-[#D4537E] mb-3">{T.modalTech}</h4>
+                        <div className="flex flex-wrap gap-1.5">
+                          {selectedItem.tech.map((tech: string) => (
+                            <motion.span
+                              key={tech}
+                              className="px-3 py-1.5 bg-[#F8F7F2] border border-[#D4537E]/20 rounded-full text-[10px] font-bold text-[#0D0D0D] uppercase tracking-wider"
+                              whileHover={{ scale: 1.05, backgroundColor: '#D4537E', color: '#fff', borderColor: '#D4537E' }}
+                              transition={{ duration: 0.15 }}
+                            >
+                              {tech}
+                            </motion.span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* GitHub link */}
                     {selectedItem.github && (
-                      <a href={selectedItem.github} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-6 py-2.5 bg-[#0D0D0D] text-white rounded-full text-xs font-bold hover:bg-black transition-all hover:scale-105">
-                        <Github size={15} /> {T.modalGithub}
-                      </a>
+                      <div>
+                        <h4 className="text-xs uppercase tracking-[0.25em] font-black text-[#D4537E] mb-3">REPOSITORY</h4>
+                        <motion.a
+                          href={selectedItem.github}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-3 p-3 rounded-xl border border-black/8 hover:border-[#D4537E]/40 hover:bg-[#F8F7F2] transition-all group"
+                          whileHover={{ x: 3 }}
+                        >
+                          <div className="w-8 h-8 rounded-lg bg-[#0D0D0D] flex items-center justify-center flex-shrink-0">
+                            <Github size={14} className="text-white" />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="text-xs font-bold text-[#0D0D0D] truncate">{selectedItem.github.replace('https://github.com/', '')}</div>
+                            <div className="text-[10px] text-[#9B9B9B]">github.com</div>
+                          </div>
+                          <ExternalLink size={12} className="ml-auto text-[#D4537E] opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+                        </motion.a>
+                      </div>
                     )}
                   </div>
                 </div>
