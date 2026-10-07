@@ -2,6 +2,40 @@
 @import './tailwind.css';
 @import './theme.css';
 
-html {
+html, body {
   scroll-behavior: smooth;
+  overflow-x: hidden;
+}
+
+#root {
+  overflow-x: hidden;
+  width: 100%;
+}
+
+/* Une seule scrollbar custom — masque la native Windows */
+* {
+  scrollbar-width: none; /* Firefox */
+}
+*::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Edge */
+}
+
+/* Scrollbar custom uniquement sur html */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(212, 83, 126, 0.5) transparent;
+}
+html::-webkit-scrollbar {
+  display: block;
+  width: 5px;
+}
+html::-webkit-scrollbar-track {
+  background: transparent;
+}
+html::-webkit-scrollbar-thumb {
+  background: rgba(212, 83, 126, 0.45);
+  border-radius: 99px;
+}
+html::-webkit-scrollbar-thumb:hover {
+  background: rgba(212, 83, 126, 0.7);
 }

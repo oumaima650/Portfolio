@@ -32,8 +32,6 @@ export const t = {
       { name: 'Francais', level: 'DELF B2' },
       { name: 'Anglais', level: 'Niveau B2' },
     ],
-    motivatedTitle: 'Motivee et Determinee',
-    quote: "\"L'excellence n'est pas un acte, mais une habitude.\"",
     statusTag: 'STATUT ACTUEL',
     statusTitle: 'Recherche Stage PFE\na partir de Janvier 2027',
     statusDesc: 'Disponible des janvier 2027. Prete a contribuer a des projets innovants en developpement logiciel, IA ou DevOps.',
@@ -91,6 +89,9 @@ export const t = {
     certTag: 'FORMATIONS & CERTIFICATIONS',
     certTitle: 'Certifications',
     certVerify: 'Voir le certificat',
+    cvDownload: 'Télécharger le CV',
+    cvFr: 'Version Française',
+    cvEn: 'English Version',
 
     // Modal
     modalDetails: 'Details',
@@ -129,8 +130,6 @@ export const t = {
       { name: 'French', level: 'DELF B2' },
       { name: 'English', level: 'Level B2' },
     ],
-    motivatedTitle: 'Motivated & Determined',
-    quote: '"Excellence is not an act, but a habit."',
     statusTag: 'CURRENT STATUS',
     statusTitle: 'Seeking Internship (PFE)\nStarting January 2027',
     statusDesc: 'Available from January 2027. Ready to contribute to innovative projects in software development, AI, or DevOps.',
@@ -188,6 +187,9 @@ export const t = {
     certTag: 'TRAINING & CERTIFICATIONS',
     certTitle: 'Certifications',
     certVerify: 'View certificate',
+    cvDownload: 'Download CV',
+    cvFr: 'French Version',
+    cvEn: 'English Version',
 
     // Modal
     modalDetails: 'Details',
