@@ -2,7 +2,7 @@ import { motion, useScroll, useTransform, AnimatePresence } from 'motion/react';
 import { useState, useRef, useEffect } from 'react';
 import { ExternalLink, Mail, Phone, Linkedin, Github, Heart, MapPin, X, Home, User, Code, Briefcase, FolderOpen, Star, MessageCircle, Award, Download, ChevronDown, type LucideIcon } from 'lucide-react';
 import profileImg from '../imports/image-1.png';
-import heroImg from '../imports/image-0.png';
+import heroImg from '../imports/image-0.webp';
 import { t, DATA, CERTIFICATIONS, type Lang } from './translations';
 
 // image map for projects (by id)
@@ -207,7 +207,7 @@ export default function App() {
           transition={{ duration: 1.8, ease: 'easeOut', delay: 0.4 }}
           style={{ opacity: heroOpacity }}
         >
-          <img src={heroImg} alt="Oumaima Ameziane" className="w-full h-full object-cover object-[65%_30%] md:object-right" />
+          <img src={heroImg} alt="Oumaima Ameziane" className="w-full h-full object-cover object-[65%_30%] md:object-right" fetchPriority="high" />
         </motion.div>
 
         {/* Top-left label */}
