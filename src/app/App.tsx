@@ -2,7 +2,7 @@ import { motion, useScroll, useTransform, AnimatePresence } from 'motion/react';
 import { useState, useRef, useEffect } from 'react';
 import emailjs from '@emailjs/browser';
 import { toast, Toaster } from 'sonner';
-import { ExternalLink, Mail, Phone, Linkedin, Github, Heart, MapPin, X, Home, User, Code, Briefcase, FolderOpen, Star, MessageCircle, Award, Download, ChevronDown, Send, Maximize2, Eye, FileText, type LucideIcon } from 'lucide-react';
+import { ExternalLink, Mail, Phone, Linkedin, Github, Heart, MapPin, X, Home, User, Code, Briefcase, FolderOpen, Star, MessageCircle, Award, Download, ChevronDown, ChevronLeft, ChevronRight, Send, Maximize2, Eye, FileText, Images, type LucideIcon } from 'lucide-react';
 import profileImg from '../imports/image-1.png';
 import heroImg from '../imports/image-0.webp';
 import { t, DATA, CERTIFICATIONS, type Lang, type CertificationItem } from './translations';
@@ -16,41 +16,79 @@ const PROJECT_IMAGES: Record<string, string> = {
   'proj-5': heroImg,
   'proj-6': profileImg,
   'proj-7': heroImg,
+  'proj-8': profileImg,
+  'proj-9': heroImg,
+  'proj-10': profileImg,
 };
 
 // ── IMAGE GALLERY ─────────────────────────────────────────────────────────────
 function ImageGallery({ images, title }: { images: string[]; title: string }) {
   const [active, setActive] = useState(0);
 
+  const prevImage = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setActive((curr) => (curr - 1 + images.length) % images.length);
+  };
+
+  const nextImage = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setActive((curr) => (curr + 1) % images.length);
+  };
+
   return (
-    <div className="relative bg-[#F0EEE8] border-b border-black/5">
+    <div className="relative bg-[#141414] border-b border-black/5">
       {/* Main image */}
-      <div className="relative h-52 md:h-72 overflow-hidden">
+      <div className="relative h-64 md:h-80 overflow-hidden flex items-center justify-center bg-black/40">
         <AnimatePresence mode="wait">
           <motion.img
             key={active}
             src={images[active]}
             alt={`${title} ${active + 1}`}
-            className="w-full h-full object-cover"
-            initial={{ opacity: 0, scale: 1.03 }}
+            className="w-full h-full object-contain"
+            initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.98 }}
-            transition={{ duration: 0.3 }}
+            exit={{ opacity: 0, scale: 1.02 }}
+            transition={{ duration: 0.25 }}
           />
         </AnimatePresence>
-        {/* Counter */}
-        <div className="absolute bottom-3 right-4 bg-black/50 backdrop-blur-sm text-white text-[10px] font-bold px-2.5 py-1 rounded-full">
+
+        {/* Prev / Next controls */}
+        {images.length > 1 && (
+          <>
+            <button
+              type="button"
+              onClick={prevImage}
+              className="absolute left-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/60 hover:bg-[#D4537E] text-white backdrop-blur-sm transition-all cursor-pointer z-10"
+              aria-label="Previous image"
+            >
+              <ChevronLeft size={18} />
+            </button>
+            <button
+              type="button"
+              onClick={nextImage}
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/60 hover:bg-[#D4537E] text-white backdrop-blur-sm transition-all cursor-pointer z-10"
+              aria-label="Next image"
+            >
+              <ChevronRight size={18} />
+            </button>
+          </>
+        )}
+
+        {/* Counter badge */}
+        <div className="absolute bottom-3 right-4 bg-black/65 backdrop-blur-md text-white text-[11px] font-bold px-3 py-1 rounded-full border border-white/10">
           {active + 1} / {images.length}
         </div>
       </div>
-      {/* Thumbnails */}
+
+      {/* Thumbnails scroll strip */}
       {images.length > 1 && (
-        <div className="flex gap-2 px-6 py-3 overflow-x-auto">
+        <div className="flex gap-2.5 px-6 py-3 overflow-x-auto bg-[#0D0D0D]/90 border-t border-white/10">
           {images.map((src, i) => (
             <button
               key={i}
+              type="button"
               onClick={() => setActive(i)}
-              className={`flex-shrink-0 w-14 h-10 rounded-lg overflow-hidden border-2 transition-all ${i === active ? 'border-[#D4537E]' : 'border-transparent opacity-50 hover:opacity-80'}`}
+              className={`flex-shrink-0 w-16 h-11 rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${i === active ? 'border-[#D4537E] ring-2 ring-[#D4537E]/40 scale-105' : 'border-white/10 opacity-60 hover:opacity-100'}`}
             >
               <img src={src} alt="" className="w-full h-full object-cover" />
             </button>
@@ -131,6 +169,7 @@ const EMAILJS_PUBLIC_KEY  = 'iMfMME6SkHJDTNTxY';
 
 export default function App() {
   const [lang, setLang] = useState<Lang>('fr');
+  const [showAllProjects, setShowAllProjects] = useState(false);
   const [activeSection, setActiveSection] = useState('home');
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -143,6 +182,14 @@ export default function App() {
 
   // Certification modal state
   const [selectedCert, setSelectedCert] = useState<CertificationItem | null>(null);
+
+  // PDF Report modal state (experiences & projects)
+  const [selectedReport, setSelectedReport] = useState<{
+    title: string;
+    subtitle: string;
+    pdfUrl: string;
+    github?: string;
+  } | null>(null);
 
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -831,17 +878,24 @@ export default function App() {
                       </motion.button>
 
                       {exp.reportPdfUrl && (
-                        <a
-                          href={exp.reportPdfUrl}
-                          download
-                          onClick={(e) => e.stopPropagation()}
-                          className="px-4 py-2.5 bg-[#F8F7F2] border border-[#D4537E]/30 text-[#0D0D0D] hover:bg-[#D4537E] hover:text-white rounded-full flex items-center gap-2 text-xs font-bold transition-all"
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedReport({
+                              title: exp.title,
+                              subtitle: `${exp.company} · ${lang === 'fr' ? 'Rapport de stage' : 'Internship report'}`,
+                              pdfUrl: exp.reportPdfUrl,
+                              github: exp.github,
+                            });
+                          }}
+                          className="px-4 py-2.5 bg-[#F8F7F2] border border-[#D4537E]/30 text-[#0D0D0D] hover:bg-[#D4537E] hover:text-white rounded-full flex items-center gap-2 text-xs font-bold transition-all cursor-pointer"
                           style={{ fontFamily: "'DM Sans', sans-serif" }}
-                          title={lang === 'fr' ? 'Télécharger le rapport complet' : 'Download full report'}
+                          title={lang === 'fr' ? 'Consulter le rapport complet' : 'View full report'}
                         >
-                          <Download size={13} />
+                          <FileText size={13} />
                           {lang === 'fr' ? 'Rapport PDF' : 'PDF Report'}
-                        </a>
+                        </button>
                       )}
                     </div>
                   </div>
@@ -864,47 +918,159 @@ export default function App() {
             <h2 className="text-[28px] md:text-[42px] leading-none text-white mb-4 font-black" style={{ fontFamily: "'Playfair Display', serif" }}>{T.projTitle}</h2>
             <p className="text-white/55 text-sm md:text-base max-w-xl mx-auto px-4" style={{ fontFamily: "'DM Sans', sans-serif" }}>{T.projSubtitle}</p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-7 text-left">
-            {PROJECTS.map((proj, idx) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 text-left">
+            {(showAllProjects ? PROJECTS : PROJECTS.slice(0, 4)).map((proj, idx) => (
               <motion.div
                 key={proj.id}
-                className="rounded-2xl overflow-hidden cursor-pointer group bg-white border border-black/5"
+                className="rounded-2xl overflow-hidden cursor-pointer group bg-white border border-black/5 flex flex-col"
                 onClick={() => openModal(proj)}
-                initial={{ opacity: 0, scale: 0.88, y: 24 }}
-                whileInView={{ opacity: 1, scale: 1, y: 0 }}
-                viewport={{ once: true, margin: '-80px' }}
-                transition={{ duration: 0.55, delay: 0.05 + (idx % 2) * 0.08 }}
-                whileHover={{ y: -6, scale: 1.01 }}
+                initial={{ opacity: 0, y: 24 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: '-60px' }}
+                transition={{ duration: 0.5, delay: 0.04 + (idx % 2) * 0.07 }}
+                whileHover={{ y: -5, boxShadow: '0 16px 40px rgba(0,0,0,0.2)' }}
               >
-                <div className="p-5 md:p-7 flex flex-col h-full min-h-[220px]">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="w-8 h-0.5 bg-[#D4537E]" />
-                    <span className="text-[9px] uppercase tracking-wider text-[#9B9B9B] font-bold">{proj.date}</span>
-                  </div>
-                  <div className="text-[10px] uppercase tracking-wider text-[#D4537E] font-bold mb-1.5">{proj.category}</div>
-                  <h3 className="text-[20px] md:text-[26px] leading-[1.1] mb-2.5 font-bold" style={{ fontFamily: "'Playfair Display', serif" }}>{proj.title}</h3>
-                  <p className="text-[#6B6B6B] leading-relaxed mb-4 text-xs line-clamp-3">{proj.description}</p>
-                  <div className="mt-auto">
-                    <div className="flex gap-1.5 flex-wrap mb-3">
-                      {proj.tech.slice(0, 4).map((tech) => (
-                        <span key={tech} className="px-2 py-1 text-[9px] font-bold uppercase tracking-wider rounded-md bg-[#F8F7F2] text-black/55 border border-black/5">{tech}</span>
-                      ))}
-                      {proj.tech.length > 4 && (
-                        <span className="px-2 py-1 text-[9px] font-bold rounded-md bg-[#D4537E]/10 text-[#D4537E]">+{proj.tech.length - 4}</span>
-                      )}
+                {/* ── Image zone ── */}
+                <div className="relative h-44 md:h-48 w-full overflow-hidden bg-[#141414] flex-shrink-0">
+                  {((proj as any).previewImage || (proj.images && proj.images.length > 0)) ? (
+                    <img
+                      src={(proj as any).previewImage || proj.images[0]}
+                      alt={proj.title}
+                      className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-[#1a1a1a] to-[#2a1a20] flex items-center justify-center">
+                      <span className="text-[#D4537E]/20 text-6xl font-black italic" style={{ fontFamily: "'Playfair Display', serif" }}>{proj.title[0]}</span>
                     </div>
-                    <div className="text-[#D4537E] flex items-center gap-1.5 text-xs font-bold group-hover:gap-3 transition-all">
-                      {T.projBtn} <ExternalLink size={13} />
+                  )}
+                  {/* Gradient overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
+
+                  {/* GitHub button — top right of image */}
+                  {proj.github && (
+                    <motion.a
+                      href={proj.github}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/60 backdrop-blur-sm border border-white/20 flex items-center justify-center hover:bg-[#D4537E] transition-colors"
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                      title="GitHub"
+                    >
+                      <Github size={14} className="text-white" />
+                    </motion.a>
+                  )}
+
+                  {/* Bottom overlay: category + photo count */}
+                  <div className="absolute bottom-2.5 left-3 right-3 flex items-center justify-between">
+                    <span className="text-[9px] uppercase tracking-wider text-white/90 font-bold bg-black/50 backdrop-blur-sm px-2.5 py-1 rounded-full">{proj.category}</span>
+                    {proj.images && proj.images.length > 1 && (
+                      <span className="text-[9px] text-white font-bold bg-black/50 backdrop-blur-sm px-2.5 py-1 rounded-full flex items-center gap-1.5">
+                        <FolderOpen size={10} className="text-[#D4537E]" /> {proj.images.length} photos
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* ── Content ── */}
+                <div className="p-5 flex flex-col flex-1">
+                  {/* Title + date */}
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <h3 className="text-[18px] md:text-[20px] leading-tight font-black" style={{ fontFamily: "'Playfair Display', serif" }}>{proj.title}</h3>
+                    <span className="text-[9px] uppercase tracking-wider text-[#9B9B9B] font-bold flex-shrink-0 mt-1">{proj.date}</span>
+                  </div>
+
+                  {/* Description — 2 lines */}
+                  <p className="text-[#6B6B6B] text-xs md:text-sm leading-relaxed line-clamp-2 mb-4">{proj.description}</p>
+
+                  {/* Bottom: tech + actions */}
+                  <div className="mt-auto">
+                    {/* Tech chips — all */}
+                    <div className="flex gap-1.5 flex-wrap mb-3">
+                      {proj.tech.map((tech) => (
+                        <span key={tech} className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded-md bg-[#F8F7F2] text-black/50 border border-black/5">{tech}</span>
+                      ))}
+                    </div>
+
+                    {/* Action row */}
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      {/* Left: voir détails + demo */}
+                      <div className="flex items-center gap-2">
+                        <div className="text-[#D4537E] flex items-center gap-1.5 text-xs font-bold group-hover:gap-3 transition-all">
+                          {T.projBtn} <ExternalLink size={12} />
+                        </div>
+                        {(proj as any).liveUrl && (
+                          <a
+                            href={(proj as any).liveUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#D4537E] text-white text-[10px] font-bold hover:bg-[#B84368] transition-all"
+                          >
+                            <ExternalLink size={10} />
+                            Demo
+                          </a>
+                        )}
+                      </div>
+                      {/* Right: rapport PDF */}
+                      {(proj as any).reportPdfUrl && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedReport({
+                              title: proj.title,
+                              subtitle: `${proj.category} · ${lang === 'fr' ? 'Rapport' : 'Report'}`,
+                              pdfUrl: (proj as any).reportPdfUrl,
+                              github: proj.github,
+                            });
+                          }}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#F8F7F2] border border-[#D4537E]/20 hover:bg-[#D4537E] hover:text-white hover:border-[#D4537E] text-[#0D0D0D] text-[10px] font-bold transition-all"
+                          title={lang === 'fr' ? 'Rapport PDF' : 'PDF Report'}
+                        >
+                          <FileText size={11} className="text-[#D4537E]" />
+                          {lang === 'fr' ? 'Rapport' : 'Report'}
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
               </motion.div>
             ))}
           </div>
+
+          {/* Bouton voir plus / voir moins */}
+          {PROJECTS.length > 4 && (
+            <motion.div
+              className="flex justify-center mt-8"
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5 }}
+            >
+              <motion.button
+                onClick={() => setShowAllProjects((v) => !v)}
+                className="flex items-center gap-2.5 px-8 py-3.5 rounded-full border-2 border-[#D4537E] text-[#D4537E] font-bold text-sm hover:bg-[#D4537E] hover:text-white transition-all"
+                style={{ fontFamily: "'DM Sans', sans-serif" }}
+                whileHover={{ scale: 1.04 }}
+                whileTap={{ scale: 0.96 }}
+              >
+                {showAllProjects
+                  ? (lang === 'fr' ? 'Voir moins' : 'Show less')
+                  : (lang === 'fr' ? `Voir tous les projets (${PROJECTS.length})` : `View all projects (${PROJECTS.length})`)}
+                <motion.span
+                  animate={{ rotate: showAllProjects ? 180 : 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="inline-block"
+                >
+                  ↓
+                </motion.span>
+              </motion.button>
+            </motion.div>
+          )}
         </div>
       </motion.section>
-
-      {/* ── ACTIVITIES ── */}
       <motion.section
         id="activities"
         className="relative py-14 md:py-24 bg-white overflow-hidden"
@@ -921,31 +1087,44 @@ export default function App() {
             {ACTIVITIES.map((act, idx) => (
               <motion.div
                 key={act.id}
-                className={`rounded-2xl overflow-hidden group ${idx === 0 ? 'md:col-span-2' : ''}`}
+                className="rounded-2xl overflow-hidden group cursor-pointer"
                 initial={{ opacity: 0, scale: 0.96 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} transition={{ duration: 0.5, delay: idx * 0.07 }}
                 whileHover={{ y: -5 }}
+                onClick={() => openModal(act)}
               >
-                {idx === 0 ? (
-                  <div className="relative bg-gradient-to-br from-[#D4537E] to-[#B84368] p-7 md:p-10 min-h-[200px] flex flex-col justify-between text-white overflow-hidden">
-                    <div className="absolute top-6 right-6 text-[100px] leading-none opacity-5 select-none font-black" style={{ fontFamily: "'Playfair Display', serif" }}>01</div>
-                    <div className="relative z-10">
-                      <div className="inline-block px-3 py-1 rounded-full bg-white/20 backdrop-blur-sm mb-3">
-                        <span className="text-[10px] uppercase tracking-wider font-bold">{act.date}</span>
-                      </div>
-                      <h3 className="text-[24px] md:text-[36px] leading-[1.1] mb-1 font-bold" style={{ fontFamily: "'Playfair Display', serif" }}>{act.title}</h3>
-                      <div className="text-sm md:text-base mb-4 opacity-90 font-bold">{act.role}</div>
-                      <p className="text-white/75 text-xs md:text-sm leading-relaxed max-w-xl">{act.description}</p>
+                <div className="bg-[#F8F7F2] border border-[#D4537E]/15 h-full flex flex-col min-h-[150px] overflow-hidden">
+                  {(act as any).previewImage && (
+                    <div className="relative h-36 w-full overflow-hidden flex-shrink-0">
+                      <img
+                        src={(act as any).previewImage}
+                        alt={act.title}
+                        className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                      {(act as any).images?.length > 1 && (
+                        <div className="absolute bottom-2 right-2 bg-black/60 backdrop-blur-sm text-white text-[9px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1"><Images size={9} className="text-[#D4537E]" />{(act as any).images.length}</div>
+                      )}
                     </div>
-                  </div>
-                ) : (
-                  <div className="bg-[#F8F7F2] border border-[#D4537E]/15 p-6 md:p-7 h-full flex flex-col min-h-[150px]">
+                  )}
+                  <div className="p-6 md:p-7 flex flex-col flex-1">
                     <div className="w-8 h-0.5 bg-[#D4537E] mb-4" />
                     <div className="text-[10px] uppercase tracking-wider font-black text-[#D4537E] mb-1">{act.category} · {act.date}</div>
                     <h3 className="text-[18px] md:text-[24px] leading-[1.1] mb-2 font-bold" style={{ fontFamily: "'Playfair Display', serif" }}>{act.title}</h3>
                     <div className="text-xs text-[#D4537E] font-bold mb-2">{act.role}</div>
                     <p className="text-[#6B6B6B] text-xs leading-relaxed">{act.description}</p>
+                    {(act as any).instagram && (
+                      <a
+                        href={(act as any).instagram}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="mt-3 inline-flex items-center gap-1.5 text-[10px] font-bold text-[#D4537E] hover:underline"
+                      >
+                        <ExternalLink size={10} /> Instagram
+                      </a>
+                    )}
                   </div>
-                )}
+                </div>
               </motion.div>
             ))}
           </div>
@@ -1345,7 +1524,9 @@ export default function App() {
                           <div className="flex items-center gap-2">
                             <FileText size={16} className="text-[#D4537E]" />
                             <h4 className="text-xs uppercase tracking-[0.2em] font-black text-[#0D0D0D]">
-                              {lang === 'fr' ? 'Rapport de stage' : 'Internship report'}
+                              {selectedItem.type === 'experience'
+                                ? (lang === 'fr' ? 'Rapport de stage' : 'Internship report')
+                                : (lang === 'fr' ? 'Rapport de projet' : 'Project report')}
                             </h4>
                           </div>
                           <a
@@ -1357,23 +1538,41 @@ export default function App() {
                             <Download size={13} />
                           </a>
                         </div>
-                        <div className="relative h-44 rounded-xl overflow-hidden bg-black/5 border border-black/10">
+                        <div
+                          onClick={() => setSelectedReport({
+                            title: selectedItem.title,
+                            subtitle: `${selectedItem.type === 'experience' ? selectedItem.company : selectedItem.category} · ${selectedItem.type === 'experience' ? (lang === 'fr' ? 'Rapport de stage' : 'Internship report') : (lang === 'fr' ? 'Rapport de projet' : 'Project report')}`,
+                            pdfUrl: selectedItem.reportPdfUrl,
+                            github: selectedItem.github,
+                          })}
+                          className="relative h-44 rounded-xl overflow-hidden bg-black/5 border border-black/10 cursor-pointer group/report"
+                        >
                           <iframe
                             src={`${selectedItem.reportPdfUrl}#page=1&toolbar=0&navpanes=0&view=FitH`}
                             title="Aperçu rapport"
                             className="w-full h-full border-0 pointer-events-none"
                           />
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/report:opacity-100 transition-opacity flex items-center justify-center gap-2 text-white">
+                            <div className="px-3 py-1.5 rounded-full bg-[#D4537E] text-[11px] font-bold flex items-center gap-1.5 shadow-lg">
+                              <Maximize2 size={12} />
+                              {lang === 'fr' ? 'Aperçu plein écran' : 'Fullscreen preview'}
+                            </div>
+                          </div>
                         </div>
-                        <a
-                          href={selectedItem.reportPdfUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="mt-3 w-full py-2 px-3 rounded-xl bg-[#0D0D0D] hover:bg-[#D4537E] text-white text-[11px] font-bold flex items-center justify-center gap-1.5 transition-colors"
+                        <button
+                          type="button"
+                          onClick={() => setSelectedReport({
+                            title: selectedItem.title,
+                            subtitle: `${selectedItem.type === 'experience' ? selectedItem.company : selectedItem.category} · ${selectedItem.type === 'experience' ? (lang === 'fr' ? 'Rapport de stage' : 'Internship report') : (lang === 'fr' ? 'Rapport de projet' : 'Project report')}`,
+                            pdfUrl: selectedItem.reportPdfUrl,
+                            github: selectedItem.github,
+                          })}
+                          className="mt-3 w-full py-2 px-3 rounded-xl bg-[#0D0D0D] hover:bg-[#D4537E] text-white text-[11px] font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                           style={{ fontFamily: "'DM Sans', sans-serif" }}
                         >
-                          <Eye size={12} />
-                          {lang === 'fr' ? 'Ouvrir le document complet' : 'Open full document'}
-                        </a>
+                          <Maximize2 size={12} />
+                          {lang === 'fr' ? 'Aperçu plein écran' : 'Fullscreen preview'}
+                        </button>
                       </div>
                     )}
 
@@ -1401,6 +1600,95 @@ export default function App() {
                     )}
                   </div>
                 </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {/* Report Zoom Lightbox Modal (Experiences & Projects) */}
+        {selectedReport && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-6">
+            <motion.div
+              className="absolute inset-0 bg-black/85 backdrop-blur-md"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedReport(null)}
+            />
+
+            <motion.div
+              className="relative w-full max-w-5xl h-[88vh] bg-[#141414] rounded-2xl md:rounded-3xl border border-white/15 shadow-2xl flex flex-col overflow-hidden z-10"
+              initial={{ opacity: 0, scale: 0.94, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.94, y: 20 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between px-6 py-4 bg-white/5 border-b border-white/10 flex-shrink-0">
+                <div className="flex items-center gap-3 min-w-0 pr-4">
+                  <div className="w-9 h-9 rounded-xl bg-[#D4537E]/20 border border-[#D4537E]/40 flex items-center justify-center flex-shrink-0">
+                    <FileText size={18} className="text-[#D4537E]" />
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="text-white text-sm md:text-base font-bold truncate" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                      {selectedReport.title}
+                    </h3>
+                    <p className="text-white/50 text-xs truncate">
+                      {selectedReport.subtitle}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {selectedReport.github && (
+                    <a
+                      href={selectedReport.github}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-bold hover:bg-white/20 transition-colors"
+                      style={{ fontFamily: "'DM Sans', sans-serif" }}
+                    >
+                      <Github size={12} />
+                      GitHub
+                    </a>
+                  )}
+
+                  <a
+                    href={selectedReport.pdfUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#D4537E] text-white text-xs font-bold hover:bg-[#b84368] transition-colors"
+                    style={{ fontFamily: "'DM Sans', sans-serif" }}
+                  >
+                    {lang === 'fr' ? 'Ouvrir' : 'Open'} <ExternalLink size={12} />
+                  </a>
+
+                  <a
+                    href={selectedReport.pdfUrl}
+                    download
+                    className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors"
+                    title={lang === 'fr' ? 'Télécharger le rapport' : 'Download report'}
+                  >
+                    <Download size={16} />
+                  </a>
+
+                  <button
+                    type="button"
+                    onClick={() => setSelectedReport(null)}
+                    className="p-2 rounded-xl bg-white/10 hover:bg-[#D4537E] text-white transition-colors cursor-pointer"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+              </div>
+
+              {/* PDF Viewer Body */}
+              <div className="flex-1 w-full bg-[#0D0D0D] relative">
+                <iframe
+                  src={`${selectedReport.pdfUrl}#toolbar=1&navpanes=0&view=Fit`}
+                  title={selectedReport.title}
+                  className="w-full h-full border-0"
+                />
               </div>
             </motion.div>
           </div>
