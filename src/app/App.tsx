@@ -1431,7 +1431,7 @@ export default function App() {
       {/* ── MODAL ── */}
       <AnimatePresence>
         {isModalOpen && selectedItem && (
-          <div className="fixed inset-0 z-[9999] flex items-end md:items-center justify-center">
+          <div className="fixed inset-0 z-[90] flex items-end md:items-center justify-center">
             {/* Backdrop */}
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -1632,7 +1632,7 @@ export default function App() {
 
         {/* Report Zoom Lightbox Modal (Experiences & Projects) */}
         {selectedReport && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-6">
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-3 md:p-6">
             <motion.div
               className="absolute inset-0 bg-black/85 backdrop-blur-md"
               initial={{ opacity: 0 }}
@@ -1708,53 +1708,13 @@ export default function App() {
                 </div>
               </div>
 
-              {/* PDF Viewer Body */}
-              <div className="flex-1 w-full bg-[#0D0D0D] relative flex flex-col">
-                {/* Desktop: embedded interactive iframe */}
-                <div className="hidden md:block w-full h-full">
-                  <iframe
-                    src={`${selectedReport.pdfUrl}#toolbar=1&navpanes=0&view=Fit`}
-                    title={selectedReport.title}
-                    className="w-full h-full border-0"
-                  />
-                </div>
-
-                {/* Mobile: responsive native reader card avoiding iframe clipping & scroll freeze */}
-                <div className="md:hidden flex-1 flex flex-col items-center justify-center p-6 text-center text-white gap-5 overflow-y-auto">
-                  <div className="w-16 h-16 rounded-2xl bg-[#D4537E]/20 border border-[#D4537E]/40 flex items-center justify-center">
-                    <FileText size={32} className="text-[#D4537E]" />
-                  </div>
-                  <div>
-                    <h4 className="text-base font-bold mb-1.5" style={{ fontFamily: "'Playfair Display', serif" }}>
-                      {selectedReport.title}
-                    </h4>
-                    <p className="text-xs text-white/60 max-w-xs mx-auto leading-relaxed">
-                      {lang === 'fr'
-                        ? 'Pour une consultation fluide sans coupure d’affichage sur mobile avec zoom tactile :'
-                        : 'For smooth reading without display clipping on mobile with native pinch-to-zoom:'}
-                    </p>
-                  </div>
-
-                  <a
-                    href={selectedReport.pdfUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-2.5 w-full max-w-xs py-3.5 px-6 rounded-2xl bg-[#D4537E] text-white font-bold text-sm shadow-xl active:scale-95 transition-all"
-                    style={{ fontFamily: "'DM Sans', sans-serif" }}
-                  >
-                    <span>{lang === 'fr' ? 'Consulter le rapport complet (PDF)' : 'Read full PDF report'}</span>
-                    <ExternalLink size={16} />
-                  </a>
-
-                  <a
-                    href={selectedReport.pdfUrl}
-                    download
-                    className="flex items-center justify-center gap-2 w-full max-w-xs py-2.5 px-6 rounded-2xl bg-white/10 border border-white/15 text-white font-medium text-xs hover:bg-white/20 transition-all"
-                  >
-                    <Download size={14} />
-                    <span>{lang === 'fr' ? 'Télécharger le PDF' : 'Download PDF'}</span>
-                  </a>
-                </div>
+              {/* PDF Viewer Body — Full interactive viewer for both mobile & desktop */}
+              <div className="flex-1 w-full bg-[#0D0D0D] relative flex flex-col min-h-0">
+                <iframe
+                  src={`${selectedReport.pdfUrl}#toolbar=1&navpanes=0&view=Fit`}
+                  title={selectedReport.title}
+                  className="w-full h-full flex-1 border-0"
+                />
               </div>
             </motion.div>
           </div>
@@ -1762,7 +1722,7 @@ export default function App() {
 
         {/* Certification Zoom Lightbox Modal */}
         {selectedCert && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-6">
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-3 md:p-6">
             {/* Backdrop */}
             <motion.div
               className="absolute inset-0 bg-black/85 backdrop-blur-md"
