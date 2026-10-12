@@ -3,7 +3,7 @@ export type Lang = 'fr' | 'en';
 export const t = {
   fr: {
     // Hero
-    jobTitle: 'INGENIEURE INFORMATIQUE',
+    jobTitle: 'FUTURE INGÉNIEURE EN INFORMATIQUE',
     tagline: "De l'idee a la solution — je construis le pont entre les deux.",
     taglineMobile: "De l'idee a la solution.",
 
@@ -24,8 +24,8 @@ export const t = {
     aboutTitle1: 'Entre la curiosite',
     aboutTitle2: 'et la creation.',
     aboutPills: ['Full Stack', 'IA & Data', 'DevOps'],
-    aboutBio: "Eleve ingeniere en 5eme annee Genie Informatique a l'ENSA Tetouan, specialite Systemes Informatiques et Aide a la Decision. Je combine expertise en developpement full stack, integration IA et outils DevOps.",
-    aboutBioBold: 'Genie Informatique',
+    aboutBio: "Élève ingénieure en 5ème année Génie Informatique à l'ENSA Tétouan, spécialité Systèmes Informatiques et Aide à la Décision. Je combine expertise en développement full stack, intégration IA et outils DevOps.",
+    aboutBioBold: 'Génie Informatique',
     languagesTitle: 'Langues',
     languages: [
       { name: 'Arabe', level: 'Langue maternelle' },
@@ -102,7 +102,7 @@ export const t = {
 
   en: {
     // Hero
-    jobTitle: 'COMPUTER ENGINEER',
+    jobTitle: 'FUTURE COMPUTER ENGINEER',
     tagline: 'From idea to solution — I build the bridge between the two.',
     taglineMobile: 'From idea to solution.',
 
@@ -208,6 +208,7 @@ export interface CertificationItem {
   description: { fr: string; en: string };
   credentialUrl?: string;
   pdfUrl?: string;
+  previewImage?: string;
   github?: string;
   badge: string;
   inProgress?: boolean;
@@ -237,6 +238,7 @@ export const CERTIFICATIONS: CertificationItem[] = [
     },
     credentialUrl: 'https://www.coursera.org/verify/XC6SYAVU084N',
     pdfUrl: '/certifications/Coursera XC6SYAVU084N.pdf',
+    previewImage: '/certifications/preview_cicd.png',
     badge: 'Docker',
   },
   {
@@ -250,6 +252,7 @@ export const CERTIFICATIONS: CertificationItem[] = [
     },
     credentialUrl: 'https://www.coursera.org/verify/OS42YJ4VZUCA',
     pdfUrl: '/certifications/Coursera OS42YJ4VZUCA (1).pdf',
+    previewImage: '/certifications/preview_github_actions.png',
     badge: 'CI/CD',
   },
   {
@@ -263,6 +266,7 @@ export const CERTIFICATIONS: CertificationItem[] = [
     },
     credentialUrl: 'https://ude.my/UC-b755c938-a60c-4343-a186-efb094163e44',
     pdfUrl: '/certifications/1771009406870.pdf',
+    previewImage: '/certifications/preview_python.png',
     github: 'https://github.com/oumaima650/Python-Mini-Projects.git',
     badge: 'Python',
   },
@@ -276,6 +280,7 @@ export const CERTIFICATIONS: CertificationItem[] = [
       en: 'Networking fundamentals: network types and components, protocols and standards, Ethernet, IPv4 and IPv6 addressing, how routers work, connectivity troubleshooting, and secure wireless router setup.',
     },
     pdfUrl: '/certifications/1753277670516.pdf',
+    previewImage: '/certifications/preview_networking.png',
     badge: 'Cisco',
   },
 ];
@@ -516,6 +521,7 @@ export const DATA = {
         description: "Jeu de tir 2D (shoot'em up) développé entièrement en Java / JavaFX, avec mode solo et multijoueur en réseau via serveur TCP multi-threadé, chat intégré et persistance des scores MySQL.",
         fullDetails: "Jeu vidéo 2D de type shoot'em up conçu et implémenté entièrement en Java avec JavaFX pour le rendu graphique.\n\n• Mode campagne solo avec sélection du combattant (F-22 Raptor, Eurofighter Typhoon, Sukhoi Su-57) et niveaux de difficulté (Easy / Medium / Hard).\n• Mode multijoueur réseau via un serveur TCP multi-threadé gérant plusieurs sessions de jeu simultanées (Host Game / Join Game).\n• Synchronisation temps réel des joueurs par Java Sockets pour une expérience coopérative et compétitive fluide.\n• Chat intégré en cours de partie pour la communication entre joueurs.\n• Architecture MVC et programmation orientée objet ; persistance des scores et classements via MySQL.\n• Interface graphique immersive (fond spatial animé, sprites d'ennemis, effets visuels).",
         tech: ['Java', 'JavaFX', 'TCP Sockets', 'Multithreading', 'MySQL', 'MVC', 'OOP'],
+        github: 'https://github.com/oumaima650/jeu-de-tir.git',
         date: '2024-2025',
         previewImage: '/projects/galaxy_attack/menu.jpg',
         images: [
@@ -690,6 +696,7 @@ export const DATA = {
         description: "2D shoot'em up video game built entirely in Java / JavaFX, featuring solo campaign and network multiplayer via a multi-threaded TCP server, integrated in-game chat, and MySQL score persistence.",
         fullDetails: "2D shoot'em up video game designed and built entirely in Java with JavaFX for graphical rendering.\n\n• Solo campaign mode with fighter selection (F-22 Raptor, Eurofighter Typhoon, Sukhoi Su-57) and difficulty levels (Easy / Medium / Hard).\n• Network multiplayer mode via a multi-threaded TCP server managing concurrent game sessions (Host Game / Join Game).\n• Real-time player synchronization using Java Sockets for seamless cooperative and competitive gameplay.\n• Integrated in-game chat system for player communication during live sessions.\n• MVC architecture and OOP design patterns; score persistence and leaderboard management via MySQL.\n• Immersive graphical interface with animated space background, enemy sprites, and visual effects.",
         tech: ['Java', 'JavaFX', 'TCP Sockets', 'Multithreading', 'MySQL', 'MVC', 'OOP'],
+        github: 'https://github.com/oumaima650/jeu-de-tir.git',
         date: '2024-2025',
         previewImage: '/projects/galaxy_attack/menu.jpg',
         images: [

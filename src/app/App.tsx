@@ -247,13 +247,23 @@ export default function App() {
   const openModal = (item: any) => {
     setSelectedItem(item);
     setIsModalOpen(true);
-    document.body.style.overflow = 'hidden';
   };
 
   const closeModal = () => {
     setIsModalOpen(false);
-    document.body.style.overflow = 'unset';
   };
+
+  // Verrouillage propre du scroll de fond uniquement quand une modale est ouverte
+  useEffect(() => {
+    const isAnyModalOpen = isModalOpen || !!selectedReport || !!selectedCert;
+    if (isAnyModalOpen) {
+      const prevOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = prevOverflow || '';
+      };
+    }
+  }, [isModalOpen, selectedReport, selectedCert]);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -324,33 +334,24 @@ export default function App() {
           <img src={heroImg} alt="Oumaima Ameziane" className="w-full h-full object-cover object-[65%_30%] md:object-right" fetchPriority="high" />
         </motion.div>
 
-        {/* Top-left label */}
-        <motion.div
-          className="absolute top-5 left-5 md:top-7 md:left-10 z-30 flex flex-col gap-1.5"
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.7, delay: 1.1 }}
-        >
-          <h2 className="text-white text-xs md:text-sm tracking-wider" style={{ fontFamily: "'DM Sans', sans-serif", fontWeight: 600 }}>
-            {T.jobTitle}
-          </h2>
-          <p className="text-white/80 text-[11px] leading-relaxed max-w-[140px] md:hidden" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-            {T.taglineMobile}
-          </p>
-        </motion.div>
+        {/* ── FIXED TOP BAR (Always visible during scrolling) ── */}
+        <div className="fixed top-0 left-0 right-0 z-40 px-5 md:px-10 py-3.5 md:py-4 flex items-center justify-between transition-all duration-300 bg-black/70 backdrop-blur-md border-b border-white/10">
+          <div className="flex flex-col gap-0.5">
+            <a href="#home" className="text-white text-xs md:text-sm tracking-wider font-bold hover:text-[#D4537E] transition-colors" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+              {T.jobTitle}
+            </a>
+            <p className="text-white/70 text-[10px] leading-relaxed max-w-[170px] md:hidden truncate" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+              {T.taglineMobile}
+            </p>
+          </div>
 
-        {/* Top-right: tagline + lang switcher */}
-        <motion.div
-          className="absolute top-5 right-5 md:top-7 md:right-10 z-30 flex flex-col items-end gap-3"
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.7, delay: 1.3 }}
-        >
-          <LangSwitcher />
-          <p className="hidden md:block text-white/80 text-xs leading-relaxed text-right max-w-[240px]" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-            {T.tagline}
-          </p>
-        </motion.div>
+          <div className="flex items-center gap-3">
+            <p className="hidden md:block text-white/70 text-xs leading-relaxed text-right max-w-[240px]" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+              {T.tagline}
+            </p>
+            <LangSwitcher />
+          </div>
+        </div>
 
         {/* Name */}
         <div className="absolute bottom-[90px] md:bottom-0 left-0 right-0 z-30 px-5 md:px-10 md:pb-10">
@@ -561,7 +562,7 @@ export default function App() {
             {/* ── BIO + LANGUAGES + STATUS — full redesign ── */}
 
             {/* Bio — layout éditorial asymétrique */}
-            <div className="grid grid-cols-1 md:grid-cols-[1fr_1px_1fr] gap-0 md:gap-8 items-start">
+            <div className="grid grid-cols-1 md:grid-cols-[1fr_1px_1fr] gap-8 md:gap-8 items-start">
               {/* Left: tagline + bio */}
               <motion.div
                 initial={{ opacity: 0, x: -30 }}
@@ -1169,15 +1170,17 @@ export default function App() {
                 {/* Top accent bar */}
                 <div className={`h-1.5 bg-gradient-to-r ${cert.inProgress ? 'from-amber-500 via-pink-500 to-[#D4537E]' : 'from-[#D4537E] via-[#F48FB1] to-[#D4537E]'}`} />
 
-                {/* PDF Interactive Preview Thumbnail or In-Progress Canvas */}
+                {/* Image Preview Thumbnail or In-Progress Canvas */}
                 <div className="relative h-44 bg-[#0D0D0D] overflow-hidden border-b border-black/5 flex items-center justify-center group-hover:brightness-105 transition-all">
-                  {cert.pdfUrl ? (
+                  {cert.previewImage ? (
                     <>
-                      <iframe
-                        src={`${cert.pdfUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
-                        title={cert.title}
-                        className="w-full h-full pointer-events-none opacity-85 scale-100"
+                      <img
+                        src={cert.previewImage}
+                        alt={cert.title}
+                        className="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
+                        loading="lazy"
                       />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-60 group-hover:opacity-30 transition-opacity" />
                       {/* Overlay on hover to invite zoom */}
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 backdrop-blur-[2px] transition-all flex items-center justify-center gap-2 text-white">
                         <div className="px-4 py-2 rounded-full bg-[#D4537E] text-xs font-bold flex items-center gap-2 shadow-lg">
@@ -1186,6 +1189,11 @@ export default function App() {
                         </div>
                       </div>
                     </>
+                  ) : cert.pdfUrl ? (
+                    <div className="flex flex-col items-center justify-center gap-2 p-6 text-center text-white">
+                      <Award size={28} className="text-[#D4537E]" />
+                      <span className="text-xs font-bold">{cert.title}</span>
+                    </div>
                   ) : (
                     <div className="flex flex-col items-center justify-center gap-3 p-6 text-center">
                       <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center">
@@ -1429,38 +1437,41 @@ export default function App() {
               className="relative w-full md:max-w-5xl md:max-h-[90vh] max-h-[92vh] bg-white md:rounded-[28px] rounded-t-[28px] overflow-hidden shadow-2xl flex flex-col"
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Close */}
-              <button onClick={closeModal} className="absolute top-4 right-4 z-50 w-9 h-9 rounded-full bg-black/8 hover:bg-black/15 flex items-center justify-center transition-colors">
-                <X size={16} />
-              </button>
+              {/* Sticky Top Bar — ALWAYS stays visible when scrolling modal content */}
+              <div className="sticky top-0 z-50 bg-[#0D0D0D] px-4 md:px-8 py-3.5 border-b border-white/10 flex items-center justify-between flex-shrink-0">
+                <button
+                  type="button"
+                  onClick={closeModal}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/15 hover:bg-[#D4537E] text-white text-xs font-bold transition-all border border-white/20 cursor-pointer active:scale-95 shadow-md flex-shrink-0"
+                  style={{ fontFamily: "'DM Sans', sans-serif" }}
+                >
+                  <ChevronLeft size={16} />
+                  <span>{lang === 'fr' ? 'Retour' : 'Back'}</span>
+                </button>
 
-              {/* Header band */}
-              <div className="bg-[#0D0D0D] px-6 md:px-10 pt-8 pb-6 flex-shrink-0">
-                <div className="flex items-start gap-4">
-                  {/* Icon / initial */}
-                  <div className="w-12 h-12 rounded-2xl bg-[#D4537E] flex items-center justify-center flex-shrink-0">
-                    <span className="text-white font-black text-lg" style={{ fontFamily: "'Playfair Display', serif" }}>
-                      {selectedItem.title?.[0]}
+                <div className="min-w-0 flex-1 px-3 text-center sm:text-left">
+                  <h3 className="text-white text-sm md:text-base font-bold truncate" style={{ fontFamily: "'Playfair Display', serif" }}>
+                    {selectedItem.title}
+                  </h3>
+                  <p className="text-[#D4537E] text-[10px] uppercase font-bold tracking-wider truncate">
+                    {selectedItem.category || selectedItem.type}
+                  </p>
+                </div>
+
+                <div className="w-10 sm:hidden flex-shrink-0" />
+              </div>
+
+              {/* Sub-header info band */}
+              <div className="bg-[#141414] px-6 md:px-10 py-4 border-b border-white/5 flex-shrink-0">
+                <div className="flex items-center gap-3 flex-wrap">
+                  {selectedItem.company && (
+                    <span className="text-[#D4537E] text-xs font-bold">{selectedItem.company}</span>
+                  )}
+                  {(selectedItem.date || selectedItem.location) && (
+                    <span className="text-white/50 text-xs">
+                      {selectedItem.date}{selectedItem.location ? ` · ${selectedItem.location}` : ''}
                     </span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[10px] uppercase tracking-[0.3em] text-[#D4537E] font-black mb-1">
-                      {selectedItem.category || selectedItem.type}
-                    </div>
-                    <h2 className="text-white text-2xl md:text-3xl font-black leading-tight truncate" style={{ fontFamily: "'Playfair Display', serif" }}>
-                      {selectedItem.title}
-                    </h2>
-                    <div className="flex items-center gap-3 mt-2 flex-wrap">
-                      {selectedItem.company && (
-                        <span className="text-[#D4537E] text-xs font-bold">{selectedItem.company}</span>
-                      )}
-                      {(selectedItem.date || selectedItem.location) && (
-                        <span className="text-white/40 text-xs">
-                          {selectedItem.date}{selectedItem.location ? ` · ${selectedItem.location}` : ''}
-                        </span>
-                      )}
-                    </div>
-                  </div>
+                  )}
                 </div>
               </div>
 
@@ -1624,8 +1635,17 @@ export default function App() {
               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
             >
               {/* Header */}
-              <div className="flex items-center justify-between px-6 py-4 bg-white/5 border-b border-white/10 flex-shrink-0">
-                <div className="flex items-center gap-3 min-w-0 pr-4">
+              <div className="flex items-center justify-between px-4 md:px-6 py-3.5 md:py-4 bg-white/5 border-b border-white/10 flex-shrink-0">
+                <div className="flex items-center gap-2.5 md:gap-3 min-w-0 pr-2">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedReport(null)}
+                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-[#D4537E] text-white text-xs font-bold transition-all border border-white/15 flex-shrink-0 cursor-pointer"
+                    title={lang === 'fr' ? 'Retour' : 'Back'}
+                  >
+                    <ChevronLeft size={15} />
+                    <span className="hidden sm:inline">{lang === 'fr' ? 'Retour' : 'Back'}</span>
+                  </button>
                   <div className="w-9 h-9 rounded-xl bg-[#D4537E]/20 border border-[#D4537E]/40 flex items-center justify-center flex-shrink-0">
                     <FileText size={18} className="text-[#D4537E]" />
                   </div>
@@ -1671,24 +1691,56 @@ export default function App() {
                   >
                     <Download size={16} />
                   </a>
-
-                  <button
-                    type="button"
-                    onClick={() => setSelectedReport(null)}
-                    className="p-2 rounded-xl bg-white/10 hover:bg-[#D4537E] text-white transition-colors cursor-pointer"
-                  >
-                    <X size={18} />
-                  </button>
                 </div>
               </div>
 
               {/* PDF Viewer Body */}
-              <div className="flex-1 w-full bg-[#0D0D0D] relative">
-                <iframe
-                  src={`${selectedReport.pdfUrl}#toolbar=1&navpanes=0&view=Fit`}
-                  title={selectedReport.title}
-                  className="w-full h-full border-0"
-                />
+              <div className="flex-1 w-full bg-[#0D0D0D] relative flex flex-col">
+                {/* Desktop: embedded interactive iframe */}
+                <div className="hidden md:block w-full h-full">
+                  <iframe
+                    src={`${selectedReport.pdfUrl}#toolbar=1&navpanes=0&view=Fit`}
+                    title={selectedReport.title}
+                    className="w-full h-full border-0"
+                  />
+                </div>
+
+                {/* Mobile: responsive native reader card avoiding iframe clipping & scroll freeze */}
+                <div className="md:hidden flex-1 flex flex-col items-center justify-center p-6 text-center text-white gap-5 overflow-y-auto">
+                  <div className="w-16 h-16 rounded-2xl bg-[#D4537E]/20 border border-[#D4537E]/40 flex items-center justify-center">
+                    <FileText size={32} className="text-[#D4537E]" />
+                  </div>
+                  <div>
+                    <h4 className="text-base font-bold mb-1.5" style={{ fontFamily: "'Playfair Display', serif" }}>
+                      {selectedReport.title}
+                    </h4>
+                    <p className="text-xs text-white/60 max-w-xs mx-auto leading-relaxed">
+                      {lang === 'fr'
+                        ? 'Pour une consultation fluide sans coupure d’affichage sur mobile avec zoom tactile :'
+                        : 'For smooth reading without display clipping on mobile with native pinch-to-zoom:'}
+                    </p>
+                  </div>
+
+                  <a
+                    href={selectedReport.pdfUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2.5 w-full max-w-xs py-3.5 px-6 rounded-2xl bg-[#D4537E] text-white font-bold text-sm shadow-xl active:scale-95 transition-all"
+                    style={{ fontFamily: "'DM Sans', sans-serif" }}
+                  >
+                    <span>{lang === 'fr' ? 'Consulter le rapport complet (PDF)' : 'Read full PDF report'}</span>
+                    <ExternalLink size={16} />
+                  </a>
+
+                  <a
+                    href={selectedReport.pdfUrl}
+                    download
+                    className="flex items-center justify-center gap-2 w-full max-w-xs py-2.5 px-6 rounded-2xl bg-white/10 border border-white/15 text-white font-medium text-xs hover:bg-white/20 transition-all"
+                  >
+                    <Download size={14} />
+                    <span>{lang === 'fr' ? 'Télécharger le PDF' : 'Download PDF'}</span>
+                  </a>
+                </div>
               </div>
             </motion.div>
           </div>
@@ -1715,8 +1767,17 @@ export default function App() {
               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
             >
               {/* Header */}
-              <div className="flex items-center justify-between px-6 py-4 bg-white/5 border-b border-white/10 flex-shrink-0">
-                <div className="flex items-center gap-3 min-w-0 pr-4">
+              <div className="flex items-center justify-between px-4 md:px-6 py-3.5 md:py-4 bg-white/5 border-b border-white/10 flex-shrink-0">
+                <div className="flex items-center gap-2.5 md:gap-3 min-w-0 pr-2">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedCert(null)}
+                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-[#D4537E] text-white text-xs font-bold transition-all border border-white/15 flex-shrink-0 cursor-pointer"
+                    title={lang === 'fr' ? 'Retour' : 'Back'}
+                  >
+                    <ChevronLeft size={15} />
+                    <span className="hidden sm:inline">{lang === 'fr' ? 'Retour' : 'Back'}</span>
+                  </button>
                   <div className="w-9 h-9 rounded-xl bg-[#D4537E]/20 border border-[#D4537E]/40 flex items-center justify-center flex-shrink-0">
                     <Award size={18} className="text-[#D4537E]" />
                   </div>
@@ -1744,34 +1805,50 @@ export default function App() {
                     </a>
                   )}
 
-                  {/* Download PDF button */}
-                  <a
-                    href={selectedCert.pdfUrl}
-                    download
-                    className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors"
-                    title={lang === 'fr' ? 'Télécharger le PDF' : 'Download PDF'}
-                  >
-                    <Download size={16} />
-                  </a>
+                  {/* Direct Open PDF in native browser */}
+                  {selectedCert.pdfUrl && (
+                    <a
+                      href={selectedCert.pdfUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#D4537E] text-white text-xs font-bold hover:bg-[#b84368] transition-colors"
+                      style={{ fontFamily: "'DM Sans', sans-serif" }}
+                    >
+                      {lang === 'fr' ? 'Ouvrir' : 'Open'} <ExternalLink size={12} />
+                    </a>
+                  )}
 
-                  {/* Close button */}
-                  <button
-                    type="button"
-                    onClick={() => setSelectedCert(null)}
-                    className="p-2 rounded-xl bg-white/10 hover:bg-[#D4537E] text-white transition-colors"
-                  >
-                    <X size={18} />
-                  </button>
+                  {/* Download PDF button */}
+                  {selectedCert.pdfUrl && (
+                    <a
+                      href={selectedCert.pdfUrl}
+                      download
+                      className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors"
+                      title={lang === 'fr' ? 'Télécharger le PDF' : 'Download PDF'}
+                    >
+                      <Download size={16} />
+                    </a>
+                  )}
                 </div>
               </div>
 
-              {/* PDF Viewer Body */}
-              <div className="flex-1 w-full bg-[#0D0D0D] relative">
-                <iframe
-                  src={`${selectedCert.pdfUrl}#toolbar=1&navpanes=0&view=Fit`}
-                  title={selectedCert.title}
-                  className="w-full h-full border-0"
-                />
+              {/* Certificate Viewer Body — Responsive image-first rendering to prevent mobile clipping */}
+              <div className="flex-1 w-full bg-[#0D0D0D] relative flex items-center justify-center p-3 md:p-6 overflow-auto">
+                {selectedCert.previewImage ? (
+                  <div className="w-full h-full flex flex-col items-center justify-center">
+                    <img
+                      src={selectedCert.previewImage}
+                      alt={selectedCert.title}
+                      className="max-w-full max-h-[74vh] object-contain rounded-lg shadow-2xl"
+                    />
+                  </div>
+                ) : (
+                  <iframe
+                    src={`${selectedCert.pdfUrl}#toolbar=1&navpanes=0&view=Fit`}
+                    title={selectedCert.title}
+                    className="w-full h-full border-0"
+                  />
+                )}
               </div>
             </motion.div>
           </div>
