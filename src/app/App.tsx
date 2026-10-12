@@ -787,17 +787,27 @@ export default function App() {
                 className="relative overflow-hidden"
                 initial={{ opacity: 0, scale: 0.96 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} transition={{ duration: 0.55, delay: index * 0.08 }}
               >
-                <div className="relative grid grid-cols-1 lg:grid-cols-[32%_68%] bg-gradient-to-br from-[#F5F4EF] to-white rounded-2xl overflow-hidden shadow-lg border border-[#D4537E]/10">
-                  <div className="bg-[#D4537E] p-7 md:p-10 flex flex-col justify-between text-white">
-                    <div>
-                      <div className="text-[10px] md:text-xs uppercase tracking-wider mb-4 opacity-90 font-semibold" style={{ fontFamily: "'DM Sans', sans-serif" }}>{exp.date}</div>
-                      <h3 className="text-[20px] md:text-[28px] leading-[1.1] mb-3 font-bold" style={{ fontFamily: "'Playfair Display', serif" }}>{exp.title}</h3>
+                <div className="relative grid grid-cols-1 lg:grid-cols-[340px_1fr] bg-gradient-to-br from-[#F5F4EF] to-white rounded-2xl overflow-hidden shadow-lg border border-[#D4537E]/10">
+                  {/* Left Column: Header & Direct Report Cover Preview */}
+                  <div className="bg-[#D4537E] flex flex-col text-white">
+                    <div className="p-7 md:p-8 flex-1 flex flex-col justify-between">
+                      <div>
+                        <div className="text-[10px] md:text-xs uppercase tracking-wider mb-2 opacity-90 font-semibold" style={{ fontFamily: "'DM Sans', sans-serif" }}>{exp.date}</div>
+                        <h3 className="text-[20px] md:text-[24px] leading-[1.15] mb-2 font-bold" style={{ fontFamily: "'Playfair Display', serif" }}>{exp.title}</h3>
+                        {(exp as any).role && (
+                          <div className="text-xs font-semibold text-white/90 mb-2.5 pb-2 border-b border-white/20" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                            {(exp as any).role}
+                          </div>
+                        )}
+                        <div className="text-base md:text-lg font-extrabold" style={{ fontFamily: "'DM Sans', sans-serif" }}>{exp.company}</div>
+                        <div className="text-[11px] opacity-80 mt-0.5" style={{ fontFamily: "'DM Sans', sans-serif" }}>{exp.location}</div>
+                      </div>
                     </div>
-                    <div>
-                      <div className="text-base md:text-xl mb-1 font-extrabold" style={{ fontFamily: "'DM Sans', sans-serif" }}>{exp.company}</div>
-                      <div className="text-[11px] opacity-80" style={{ fontFamily: "'DM Sans', sans-serif" }}>{exp.location}</div>
-                    </div>
+
+
                   </div>
+
+                  {/* Right Column: Mission, Stack, Actions */}
                   <div className="p-7 md:p-10 flex flex-col justify-between">
                     <div className="mb-5">
                       <h4 className="text-sm md:text-base mb-3 font-bold" style={{ fontFamily: "'DM Sans', sans-serif" }}>{T.expMission}</h4>
@@ -809,14 +819,31 @@ export default function App() {
                         ))}
                       </div>
                     </div>
-                    <motion.button
-                      onClick={() => openModal(exp)}
-                      className="self-start px-6 py-2.5 bg-[#0D0D0D] text-white rounded-full flex items-center gap-2 text-xs md:text-sm font-bold hover:bg-black transition-all"
-                      style={{ fontFamily: "'DM Sans', sans-serif" }}
-                      whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.95 }}
-                    >
-                      {T.expBtn} <ExternalLink size={13} />
-                    </motion.button>
+
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <motion.button
+                        onClick={() => openModal(exp)}
+                        className="px-6 py-2.5 bg-[#0D0D0D] text-white rounded-full flex items-center gap-2 text-xs md:text-sm font-bold hover:bg-black transition-all"
+                        style={{ fontFamily: "'DM Sans', sans-serif" }}
+                        whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.95 }}
+                      >
+                        {T.expBtn} <ExternalLink size={13} />
+                      </motion.button>
+
+                      {exp.reportPdfUrl && (
+                        <a
+                          href={exp.reportPdfUrl}
+                          download
+                          onClick={(e) => e.stopPropagation()}
+                          className="px-4 py-2.5 bg-[#F8F7F2] border border-[#D4537E]/30 text-[#0D0D0D] hover:bg-[#D4537E] hover:text-white rounded-full flex items-center gap-2 text-xs font-bold transition-all"
+                          style={{ fontFamily: "'DM Sans', sans-serif" }}
+                          title={lang === 'fr' ? 'Télécharger le rapport complet' : 'Download full report'}
+                        >
+                          <Download size={13} />
+                          {lang === 'fr' ? 'Rapport PDF' : 'PDF Report'}
+                        </a>
+                      )}
+                    </div>
                   </div>
                 </div>
               </motion.div>
@@ -1267,11 +1294,26 @@ export default function App() {
 
                 {/* Content */}
                 <div className="px-6 md:px-10 py-7 grid grid-cols-1 md:grid-cols-[1fr_280px] gap-8">
-                  {/* Left: description */}
+                  {/* Left: description — formatted */}
                   <div>
-                    <h3 className="text-xs uppercase tracking-[0.25em] font-black text-[#D4537E] mb-3">{T.modalDetails}</h3>
-                    <div className="text-[#4A4A4A] text-sm leading-relaxed whitespace-pre-line" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-                      {selectedItem.fullDetails || selectedItem.description}
+                    <h3 className="text-xs uppercase tracking-[0.25em] font-black text-[#D4537E] mb-4">{T.modalDetails}</h3>
+                    <div className="space-y-3 text-sm" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                      {(selectedItem.fullDetails || selectedItem.description).split('\n').map((line: string, i: number) => {
+                        if (!line.trim()) return <div key={i} className="h-1" />;
+                        if (line.startsWith('•')) return (
+                          <div key={i} className="flex gap-2 items-start">
+                            <span className="text-[#D4537E] font-black mt-0.5 flex-shrink-0">•</span>
+                            <span className="text-[#4A4A4A] leading-relaxed">{line.slice(1).trim()}</span>
+                          </div>
+                        );
+                        if (line.endsWith(':') || (line.length < 60 && line === line.toUpperCase())) return (
+                          <p key={i} className="text-[10px] uppercase tracking-[0.2em] font-black text-[#D4537E] pt-2">{line}</p>
+                        );
+                        if (/^[A-Z\u00C0-\u00DC].{0,40}:$/.test(line) || /^(Problématique|Problematique|Problem|Solution|Description|Poste|Role|Entreprise|Company|Période|Period|Stack|Projet|Project)\s*:?/i.test(line)) return (
+                          <p key={i} className="font-bold text-[#0D0D0D] mt-3 text-[13px] uppercase tracking-wider text-[#D4537E]">{line}</p>
+                        );
+                        return <p key={i} className="text-[#4A4A4A] leading-relaxed">{line}</p>;
+                      })}
                     </div>
                   </div>
 
@@ -1293,6 +1335,45 @@ export default function App() {
                             </motion.span>
                           ))}
                         </div>
+                      </div>
+                    )}
+
+                    {/* Report PDF section */}
+                    {selectedItem.reportPdfUrl && (
+                      <div className="p-4 rounded-2xl bg-[#F8F7F2] border border-[#D4537E]/25">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <FileText size={16} className="text-[#D4537E]" />
+                            <h4 className="text-xs uppercase tracking-[0.2em] font-black text-[#0D0D0D]">
+                              {lang === 'fr' ? 'Rapport de stage' : 'Internship report'}
+                            </h4>
+                          </div>
+                          <a
+                            href={selectedItem.reportPdfUrl}
+                            download
+                            className="p-1.5 rounded-lg bg-white border border-[#D4537E]/30 text-[#D4537E] hover:bg-[#D4537E] hover:text-white transition-colors"
+                            title={lang === 'fr' ? 'Télécharger le rapport' : 'Download report'}
+                          >
+                            <Download size={13} />
+                          </a>
+                        </div>
+                        <div className="relative h-44 rounded-xl overflow-hidden bg-black/5 border border-black/10">
+                          <iframe
+                            src={`${selectedItem.reportPdfUrl}#page=1&toolbar=0&navpanes=0&view=FitH`}
+                            title="Aperçu rapport"
+                            className="w-full h-full border-0 pointer-events-none"
+                          />
+                        </div>
+                        <a
+                          href={selectedItem.reportPdfUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-3 w-full py-2 px-3 rounded-xl bg-[#0D0D0D] hover:bg-[#D4537E] text-white text-[11px] font-bold flex items-center justify-center gap-1.5 transition-colors"
+                          style={{ fontFamily: "'DM Sans', sans-serif" }}
+                        >
+                          <Eye size={12} />
+                          {lang === 'fr' ? 'Ouvrir le document complet' : 'Open full document'}
+                        </a>
                       </div>
                     )}
 
