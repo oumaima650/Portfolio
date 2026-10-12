@@ -1,15 +1,21 @@
 import { motion, useScroll, useTransform, AnimatePresence } from 'motion/react';
 import { useState, useRef, useEffect } from 'react';
-import { ExternalLink, Mail, Phone, Linkedin, Github, Heart, MapPin, X, Home, User, Code, Briefcase, FolderOpen, Star, MessageCircle, Award, Download, ChevronDown, type LucideIcon } from 'lucide-react';
+import emailjs from '@emailjs/browser';
+import { toast, Toaster } from 'sonner';
+import { ExternalLink, Mail, Phone, Linkedin, Github, Heart, MapPin, X, Home, User, Code, Briefcase, FolderOpen, Star, MessageCircle, Award, Download, ChevronDown, Send, Maximize2, Eye, FileText, type LucideIcon } from 'lucide-react';
 import profileImg from '../imports/image-1.png';
 import heroImg from '../imports/image-0.webp';
-import { t, DATA, CERTIFICATIONS, type Lang } from './translations';
+import { t, DATA, CERTIFICATIONS, type Lang, type CertificationItem } from './translations';
 
-// image map for projects (by id)
+// image map for projects (by id) — remplace par tes vraies images dans public/projets/
 const PROJECT_IMAGES: Record<string, string> = {
   'proj-1': heroImg,
   'proj-2': profileImg,
   'proj-3': heroImg,
+  'proj-4': profileImg,
+  'proj-5': heroImg,
+  'proj-6': profileImg,
+  'proj-7': heroImg,
 };
 
 // ── IMAGE GALLERY ─────────────────────────────────────────────────────────────
@@ -86,8 +92,8 @@ function CvDownloadButton({ T }: { T: typeof import('./translations').t['fr'] })
             transition={{ duration: 0.2, ease: 'easeOut' }}
           >
             {[
-              { label: T.cvFr, flag: '🇫🇷', file: '/cv-oumaima-fr.pdf' },
-              { label: T.cvEn, flag: '🇬🇧', file: '/cv-oumaima-en.pdf' },
+              { label: T.cvFr, flag: '🇫🇷', file: '/CV_Ameziane_Oumaima_Software_Engineer.pdf' },
+              { label: T.cvEn, flag: '🇬🇧', file: '/Resume_Ameziane_Oumaima_Software_Engineer.pdf' },
             ].map(({ label, flag, file }, i) => (
               <motion.a
                 key={file}
@@ -119,12 +125,72 @@ function CvDownloadButton({ T }: { T: typeof import('./translations').t['fr'] })
 }
 
 // ── APP ───────────────────────────────────────────────────────────────────────
+const EMAILJS_SERVICE_ID  = 'service_xf6wlzq';
+const EMAILJS_TEMPLATE_ID = 'template_50yx5ji';
+const EMAILJS_PUBLIC_KEY  = 'iMfMME6SkHJDTNTxY';
+
 export default function App() {
   const [lang, setLang] = useState<Lang>('fr');
   const [activeSection, setActiveSection] = useState('home');
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const heroRef = useRef<HTMLDivElement>(null);
+
+  // Contact form state
+  const [formData, setFormData] = useState({ name: '', email: '', subject: '', message: '' });
+  const [isSending, setIsSending] = useState(false);
+  const [formStatus, setFormStatus] = useState<'idle' | 'success' | 'error'>('idle');
+
+  // Certification modal state
+  const [selectedCert, setSelectedCert] = useState<CertificationItem | null>(null);
+
+  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    if (formStatus !== 'idle') setFormStatus('idle');
+  };
+
+  const handleFormSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.name || !formData.email || !formData.message) {
+      setFormStatus('error');
+      return;
+    }
+    setIsSending(true);
+    setFormStatus('idle');
+    const isFr = lang === 'fr';
+    try {
+      await emailjs.send(
+        EMAILJS_SERVICE_ID,
+        EMAILJS_TEMPLATE_ID,
+        {
+          from_name:  formData.name,
+          from_email: formData.email,
+          name:       formData.name,
+          email:      formData.email,
+          subject:    formData.subject || (isFr ? 'Message depuis le portfolio' : 'Message from portfolio'),
+          message:    formData.message,
+
+          // Auto-Reply dynamic variables (FR / EN)
+          reply_subject: isFr
+            ? 'Accusé de réception — Merci pour votre message !'
+            : 'Confirmation — Thank you for reaching out!',
+          greeting: isFr ? 'Bonjour' : 'Hello',
+          reply_body: isFr
+            ? "Merci d'avoir pris le temps de me contacter via mon portfolio. J'ai bien reçu votre message et je reviendrai vers vous dans les plus brefs délais."
+            : "Thank you for reaching out through my portfolio. I have received your message and will get back to you shortly.",
+          signoff: isFr ? 'Bien cordialement' : 'Best regards',
+          role: isFr ? 'Élève Ingénieure en Génie Informatique' : 'Computer Engineering Student',
+        },
+        EMAILJS_PUBLIC_KEY
+      );
+      setFormStatus('success');
+      setFormData({ name: '', email: '', subject: '', message: '' });
+    } catch {
+      setFormStatus('error');
+    } finally {
+      setIsSending(false);
+    }
+  };
 
   const T = t[lang];
   const EXPERIENCES = DATA.experiences[lang];
@@ -189,7 +255,8 @@ export default function App() {
   );
 
   return (
-    <div className="min-h-screen bg-white overflow-x-hidden w-full">
+    <div className="min-h-screen bg-white w-full">
+      <Toaster position="top-center" richColors />
 
       {/* ── HERO ── */}
       <motion.section
@@ -354,7 +421,7 @@ export default function App() {
 
                 {/* Animated title — stagger container */}
                 <motion.h2
-                  className="text-[36px] md:text-[64px] leading-[1.0] font-black mb-8 tracking-tighter"
+                  className="text-[36px] md:text-[64px] leading-[1.05] font-black mb-8 tracking-tighter"
                   style={{ fontFamily: "'Playfair Display', serif", color: '#0D0D0D' }}
                   initial="hidden"
                   whileInView="visible"
@@ -366,27 +433,15 @@ export default function App() {
                 >
                   {/* Line 1 */}
                   <span className="block">
-                    {T.aboutTitle1.split(' ').map((word, i) => (
-                      <motion.span
-                        key={i}
-                        className="inline-block mr-[0.25em]"
-                        variants={{
-                          hidden: { opacity: 0, y: 32, filter: 'blur(6px)' },
-                          visible: { opacity: 1, y: 0, filter: 'blur(0px)', transition: { duration: 0.5, ease: 'easeOut' } },
-                        }}
-                      >
-                        {word}
-                      </motion.span>
-                    ))}
-                    {/* "code" — italic rose with drawing underline */}
+                    {lang === 'en' ? 'Somewhere between' : 'Entre la'}{' '}
                     <motion.span
-                      className="relative inline-block italic text-[#D4537E] mr-[0.05em]"
+                      className="relative inline-block italic text-[#D4537E]"
                       variants={{
                         hidden: { opacity: 0, y: 32, filter: 'blur(6px)' },
                         visible: { opacity: 1, y: 0, filter: 'blur(0px)', transition: { duration: 0.5, ease: 'easeOut' } },
                       }}
                     >
-                      code
+                      {lang === 'en' ? 'curiosity' : 'curiosité'}
                       <motion.span
                         className="absolute left-0 rounded-full bg-[#D4537E]"
                         style={{ bottom: '-2px', height: '3px', display: 'block' }}
@@ -396,29 +451,28 @@ export default function App() {
                         transition={{ duration: 0.7, delay: 0.7, ease: 'easeOut' }}
                       />
                     </motion.span>
-                    <motion.span
-                      className="inline-block"
-                      variants={{
-                        hidden: { opacity: 0, y: 32, filter: 'blur(6px)' },
-                        visible: { opacity: 1, y: 0, filter: 'blur(0px)', transition: { duration: 0.4, ease: 'easeOut' } },
-                      }}
-                    >,</motion.span>
                   </span>
 
                   {/* Line 2 */}
                   <span className="block">
-                    {T.aboutTitle2.split(' ').map((word, i) => (
-                      <motion.span
-                        key={i}
-                        className="inline-block mr-[0.25em]"
-                        variants={{
-                          hidden: { opacity: 0, y: 32, filter: 'blur(6px)' },
-                          visible: { opacity: 1, y: 0, filter: 'blur(0px)', transition: { duration: 0.5, ease: 'easeOut' } },
-                        }}
-                      >
-                        {word}
-                      </motion.span>
-                    ))}
+                    <motion.span
+                      className="inline-block mr-[0.25em]"
+                      variants={{
+                        hidden: { opacity: 0, y: 32, filter: 'blur(6px)' },
+                        visible: { opacity: 1, y: 0, filter: 'blur(0px)', transition: { duration: 0.5, ease: 'easeOut' } },
+                      }}
+                    >
+                      {lang === 'en' ? 'and' : 'et la'}
+                    </motion.span>
+                    <motion.span
+                      className="inline-block"
+                      variants={{
+                        hidden: { opacity: 0, y: 32, filter: 'blur(6px)' },
+                        visible: { opacity: 1, y: 0, filter: 'blur(0px)', transition: { duration: 0.5, ease: 'easeOut' } },
+                      }}
+                    >
+                      {lang === 'en' ? 'creation.' : 'création.'}
+                    </motion.span>
                   </span>
                 </motion.h2>
 
@@ -783,69 +837,42 @@ export default function App() {
             <h2 className="text-[28px] md:text-[42px] leading-none text-white mb-4 font-black" style={{ fontFamily: "'Playfair Display', serif" }}>{T.projTitle}</h2>
             <p className="text-white/55 text-sm md:text-base max-w-xl mx-auto px-4" style={{ fontFamily: "'DM Sans', sans-serif" }}>{T.projSubtitle}</p>
           </div>
-          <div className="space-y-5 md:space-y-7">
-            {PROJECTS.slice(0, 1).map((proj) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-7 text-left">
+            {PROJECTS.map((proj, idx) => (
               <motion.div
                 key={proj.id}
-                className="relative rounded-2xl overflow-hidden cursor-pointer group"
+                className="rounded-2xl overflow-hidden cursor-pointer group bg-white border border-black/5"
                 onClick={() => openModal(proj)}
-                initial={{ opacity: 0, scale: 0.88, y: 24 }} whileInView={{ opacity: 1, scale: 1, y: 0 }} viewport={{ once: true, margin: '-80px' }} transition={{ duration: 0.55 }}
-                whileHover={{ scale: 1.015 }}
+                initial={{ opacity: 0, scale: 0.88, y: 24 }}
+                whileInView={{ opacity: 1, scale: 1, y: 0 }}
+                viewport={{ once: true, margin: '-80px' }}
+                transition={{ duration: 0.55, delay: 0.05 + (idx % 2) * 0.08 }}
+                whileHover={{ y: -6, scale: 1.01 }}
               >
-                <div className="relative bg-gradient-to-br from-[#D4537E] to-[#B84368] p-7 md:p-10 min-h-[300px] md:min-h-[360px] flex items-end">
-                  <div className="relative z-10 w-full grid grid-cols-1 lg:grid-cols-[60%_40%] gap-7 md:gap-10 text-left">
-                    <div>
-                      <div className="inline-block px-3 py-1 rounded-full bg-white/20 backdrop-blur-sm mb-4">
-                        <span className="text-[10px] md:text-xs text-white font-bold tracking-wider uppercase">{proj.category}</span>
-                      </div>
-                      <h3 className="text-[30px] md:text-[46px] leading-[1.05] mb-3 text-white font-bold" style={{ fontFamily: "'Playfair Display', serif" }}>{proj.title}</h3>
-                      <p className="text-white/85 text-xs md:text-sm leading-relaxed mb-4">{proj.description}</p>
+                <div className="p-5 md:p-7 flex flex-col h-full min-h-[220px]">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="w-8 h-0.5 bg-[#D4537E]" />
+                    <span className="text-[9px] uppercase tracking-wider text-[#9B9B9B] font-bold">{proj.date}</span>
+                  </div>
+                  <div className="text-[10px] uppercase tracking-wider text-[#D4537E] font-bold mb-1.5">{proj.category}</div>
+                  <h3 className="text-[20px] md:text-[26px] leading-[1.1] mb-2.5 font-bold" style={{ fontFamily: "'Playfair Display', serif" }}>{proj.title}</h3>
+                  <p className="text-[#6B6B6B] leading-relaxed mb-4 text-xs line-clamp-3">{proj.description}</p>
+                  <div className="mt-auto">
+                    <div className="flex gap-1.5 flex-wrap mb-3">
+                      {proj.tech.slice(0, 4).map((tech) => (
+                        <span key={tech} className="px-2 py-1 text-[9px] font-bold uppercase tracking-wider rounded-md bg-[#F8F7F2] text-black/55 border border-black/5">{tech}</span>
+                      ))}
+                      {proj.tech.length > 4 && (
+                        <span className="px-2 py-1 text-[9px] font-bold rounded-md bg-[#D4537E]/10 text-[#D4537E]">+{proj.tech.length - 4}</span>
+                      )}
                     </div>
-                    <div className="flex flex-col justify-end items-start md:items-end">
-                      <div className="mb-5 w-full text-left md:text-right">
-                        <div className="text-[10px] uppercase tracking-wider text-white/65 mb-2 font-bold">{T.projTechLabel}</div>
-                        <div className="flex gap-1.5 flex-wrap md:justify-end">
-                          {proj.tech.map((tech) => (
-                            <span key={tech} className="px-2.5 md:px-3 py-1 rounded-full bg-white/20 backdrop-blur-sm text-white border border-white/30 text-[10px] font-medium">{tech}</span>
-                          ))}
-                        </div>
-                      </div>
-                      <motion.button className="px-5 py-2.5 bg-white text-[#D4537E] rounded-full flex items-center gap-2 text-xs font-bold shadow-lg" whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.95 }}>
-                        {T.projBtn} <ExternalLink size={13} />
-                      </motion.button>
+                    <div className="text-[#D4537E] flex items-center gap-1.5 text-xs font-bold group-hover:gap-3 transition-all">
+                      {T.projBtn} <ExternalLink size={13} />
                     </div>
                   </div>
                 </div>
               </motion.div>
             ))}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-7 text-left">
-              {PROJECTS.slice(1).map((proj, idx) => (
-                <motion.div
-                  key={proj.id}
-                  className="rounded-2xl overflow-hidden cursor-pointer group bg-white border border-black/5"
-                  onClick={() => openModal(proj)}
-                  initial={{ opacity: 0, scale: 0.88, y: 24 }} whileInView={{ opacity: 1, scale: 1, y: 0 }} viewport={{ once: true, margin: '-80px' }} transition={{ duration: 0.55, delay: 0.1 + idx * 0.08 }}
-                  whileHover={{ y: -6, scale: 1.01 }}
-                >
-                  <div className="p-5 md:p-7 min-h-[280px] md:min-h-[340px] flex flex-col">
-                    <div className="w-10 h-0.5 bg-[#D4537E] mb-4" />
-                    <div className="text-[10px] uppercase tracking-wider text-[#D4537E] font-bold mb-2">{proj.category}</div>
-                    <h3 className="text-[22px] md:text-[30px] leading-[1.1] mb-3 font-bold" style={{ fontFamily: "'Playfair Display', serif" }}>{proj.title}</h3>
-                    <p className="text-[#6B6B6B] leading-relaxed mb-4 text-xs md:text-sm">{proj.description}</p>
-                    <div className="mt-auto">
-                      <div className="flex gap-1.5 flex-wrap mb-4">
-                        {proj.tech.map((tech) => (
-                          <span key={tech} className="px-2 py-1 text-[9px] font-bold uppercase tracking-wider rounded-md bg-[#F8F7F2] text-black/55 border border-black/5">{tech}</span>
-                        ))}
-                      </div>
-                      <div className="text-[#D4537E] flex items-center gap-1.5 text-xs font-bold group-hover:gap-3 transition-all">
-                        {T.projBtn} <ExternalLink size={13} />
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
           </div>
         </div>
       </motion.section>
@@ -921,28 +948,63 @@ export default function App() {
           </motion.div>
 
           {/* Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
             {CERTIFICATIONS.map((cert, idx) => (
               <motion.div
                 key={cert.id}
-                className="group bg-white rounded-2xl overflow-hidden shadow-sm border border-[#D4537E]/10 hover:shadow-md hover:border-[#D4537E]/30 transition-all"
+                className="group bg-white rounded-2xl overflow-hidden shadow-sm border border-[#D4537E]/15 hover:shadow-xl hover:border-[#D4537E]/40 transition-all flex flex-col cursor-pointer"
                 initial={{ opacity: 0, y: 24 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: idx * 0.07 }}
-                whileHover={{ y: -4 }}
+                whileHover={{ y: -5 }}
+                onClick={() => setSelectedCert(cert)}
               >
                 {/* Top accent bar */}
-                <div className="h-1 bg-gradient-to-r from-[#D4537E] to-[#B84368]" />
+                <div className={`h-1.5 bg-gradient-to-r ${cert.inProgress ? 'from-amber-500 via-pink-500 to-[#D4537E]' : 'from-[#D4537E] via-[#F48FB1] to-[#D4537E]'}`} />
 
-                <div className="p-6 md:p-7 flex flex-col h-full">
+                {/* PDF Interactive Preview Thumbnail or In-Progress Canvas */}
+                <div className="relative h-44 bg-[#0D0D0D] overflow-hidden border-b border-black/5 flex items-center justify-center group-hover:brightness-105 transition-all">
+                  {cert.pdfUrl ? (
+                    <>
+                      <iframe
+                        src={`${cert.pdfUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
+                        title={cert.title}
+                        className="w-full h-full pointer-events-none opacity-85 scale-100"
+                      />
+                      {/* Overlay on hover to invite zoom */}
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 backdrop-blur-[2px] transition-all flex items-center justify-center gap-2 text-white">
+                        <div className="px-4 py-2 rounded-full bg-[#D4537E] text-xs font-bold flex items-center gap-2 shadow-lg">
+                          <Maximize2 size={13} />
+                          {lang === 'fr' ? 'Agrandir le certificat' : 'Enlarge certificate'}
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center gap-3 p-6 text-center">
+                      <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center">
+                        <Award size={24} className="text-[#D4537E]" />
+                      </div>
+                      <div className="text-[11px] uppercase tracking-[0.2em] font-black text-[#D4537E]">
+                        {lang === 'fr' ? 'Formation en cours de complétion' : 'Course in progress'}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="p-6 md:p-7 flex flex-col flex-1">
                   {/* Badge + date row */}
                   <div className="flex items-start justify-between mb-4">
-                    <div className="w-12 h-12 rounded-2xl bg-[#D4537E]/10 flex items-center justify-center text-2xl flex-shrink-0">
+                    <span className="text-[10px] font-black text-[#D4537E] uppercase tracking-wider px-3 py-1 rounded-full border border-[#D4537E]/20 bg-[#D4537E]/10 flex items-center gap-1.5">
+                      <Award size={12} className="text-[#D4537E]" />
                       {cert.badge}
-                    </div>
-                    <span className="text-[10px] font-black text-[#D4537E]/60 uppercase tracking-wider px-2.5 py-1 rounded-full border border-[#D4537E]/15 bg-[#F8F7F2]">
-                      {cert.date}
+                    </span>
+                    <span className={`text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full border ${
+                      cert.inProgress
+                        ? 'text-amber-600 bg-amber-500/10 border-amber-500/30'
+                        : 'text-[#6B6B6B] border-black/10 bg-[#F8F7F2]'
+                    }`}>
+                      {cert.date[lang]}
                     </span>
                   </div>
 
@@ -954,26 +1016,61 @@ export default function App() {
 
                   {/* Description */}
                   <p className="text-[#6B6B6B] text-xs leading-relaxed flex-1 mb-5" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-                    {cert.description}
+                    {cert.description[lang]}
                   </p>
 
-                  {/* Link */}
-                  {cert.credentialUrl && cert.credentialUrl !== '#' && (
-                    <a
-                      href={cert.credentialUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-[#D4537E] hover:gap-3 transition-all"
-                      style={{ fontFamily: "'DM Sans', sans-serif" }}
-                    >
-                      {T.certVerify} <ExternalLink size={11} />
-                    </a>
-                  )}
-                  {(!cert.credentialUrl || cert.credentialUrl === '#') && (
-                    <div className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-[#D4537E]/40" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-                      <Award size={11} /> {T.certVerify}
+                  {/* Action Links */}
+                  <div className="flex items-center justify-between pt-4 border-t border-black/5 mt-auto">
+                    {/* Zoom trigger */}
+                    {cert.pdfUrl ? (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedCert(cert);
+                        }}
+                        className="inline-flex items-center gap-1.5 text-[11px] font-bold text-[#0D0D0D] hover:text-[#D4537E] transition-colors"
+                        style={{ fontFamily: "'DM Sans', sans-serif" }}
+                      >
+                        <Eye size={13} className="text-[#D4537E]" />
+                        {lang === 'fr' ? 'Aperçu' : 'Preview'}
+                      </button>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-amber-600" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                        <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                        {lang === 'fr' ? 'En cours' : 'In progress'}
+                      </span>
+                    )}
+
+                    <div className="flex items-center gap-3">
+                      {cert.github && (
+                        <a
+                          href={cert.github}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="inline-flex items-center gap-1 text-[11px] font-bold text-[#0D0D0D] hover:text-[#D4537E] transition-colors"
+                          style={{ fontFamily: "'DM Sans', sans-serif" }}
+                          title="GitHub Repository"
+                        >
+                          <Github size={13} /> GitHub
+                        </a>
+                      )}
+
+                      {cert.credentialUrl && (
+                        <a
+                          href={cert.credentialUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-[#D4537E] hover:gap-2.5 transition-all"
+                          style={{ fontFamily: "'DM Sans', sans-serif" }}
+                        >
+                          {T.certVerify} <ExternalLink size={12} />
+                        </a>
+                      )}
                     </div>
-                  )}
+                  </div>
                 </div>
               </motion.div>
             ))}
@@ -1018,28 +1115,84 @@ export default function App() {
               </div>
             </div>
             <div>
-              <form className="space-y-4">
-                {[
-                  { type: 'text',  placeholder: T.contactName },
-                  { type: 'email', placeholder: T.contactEmail },
-                  { type: 'text',  placeholder: T.contactSubject },
-                ].map(({ type, placeholder }) => (
-                  <input key={placeholder} type={type} placeholder={placeholder}
-                    className="w-full px-4 md:px-5 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-white/35 focus:border-[#D4537E] outline-none transition-all text-xs md:text-sm"
-                    style={{ fontFamily: "'DM Sans', sans-serif" }}
-                  />
-                ))}
-                <textarea rows={4} placeholder={T.contactMessage}
+              <form className="space-y-4" onSubmit={handleFormSubmit}>
+                <input
+                  type="text" name="name" placeholder={T.contactName} value={formData.name} onChange={handleFormChange} required
+                  className="w-full px-4 md:px-5 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-white/35 focus:border-[#D4537E] outline-none transition-all text-xs md:text-sm"
+                  style={{ fontFamily: "'DM Sans', sans-serif" }}
+                />
+                <input
+                  type="email" name="email" placeholder={T.contactEmail} value={formData.email} onChange={handleFormChange} required
+                  className="w-full px-4 md:px-5 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-white/35 focus:border-[#D4537E] outline-none transition-all text-xs md:text-sm"
+                  style={{ fontFamily: "'DM Sans', sans-serif" }}
+                />
+                <input
+                  type="text" name="subject" placeholder={T.contactSubject} value={formData.subject} onChange={handleFormChange}
+                  className="w-full px-4 md:px-5 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-white/35 focus:border-[#D4537E] outline-none transition-all text-xs md:text-sm"
+                  style={{ fontFamily: "'DM Sans', sans-serif" }}
+                />
+                <textarea
+                  name="message" rows={4} placeholder={T.contactMessage} value={formData.message} onChange={handleFormChange} required
                   className="w-full px-4 md:px-5 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-white/35 focus:border-[#D4537E] outline-none resize-none transition-all text-xs md:text-sm"
                   style={{ fontFamily: "'DM Sans', sans-serif" }}
                 />
-                <motion.button type="submit"
-                  className="w-full py-3 rounded-xl bg-[#D4537E] text-white uppercase tracking-wider text-xs md:text-sm font-bold"
+
+                {/* Inline feedback message */}
+                <AnimatePresence>
+                  {formStatus === 'success' && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -6, height: 0 }}
+                      animate={{ opacity: 1, y: 0, height: 'auto' }}
+                      exit={{ opacity: 0, y: -6, height: 0 }}
+                      transition={{ duration: 0.3 }}
+                      className="flex items-center gap-2.5 px-4 py-3 rounded-xl bg-[#D4537E]/10 border border-[#D4537E]/30 text-white"
+                      style={{ fontFamily: "'DM Sans', sans-serif" }}
+                    >
+                      <Heart size={14} fill="#D4537E" className="text-[#D4537E] flex-shrink-0" />
+                      <span className="text-xs md:text-sm font-medium text-white/90">
+                        {lang === 'fr'
+                          ? 'Message bien reçu, je vous répondrai très bientôt.'
+                          : 'Message received, I will get back to you very soon.'}
+                      </span>
+                    </motion.div>
+                  )}
+                  {formStatus === 'error' && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -6, height: 0 }}
+                      animate={{ opacity: 1, y: 0, height: 'auto' }}
+                      exit={{ opacity: 0, y: -6, height: 0 }}
+                      transition={{ duration: 0.3 }}
+                      className="flex items-center gap-2.5 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/30 text-white"
+                      style={{ fontFamily: "'DM Sans', sans-serif" }}
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full bg-red-400 flex-shrink-0" />
+                      <span className="text-xs md:text-sm font-medium text-red-200">
+                        {lang === 'fr'
+                          ? 'Une erreur est survenue lors de l\'envoi. Veuillez réessayer.'
+                          : 'An error occurred while sending. Please try again.'}
+                      </span>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                <motion.button
+                  type="submit"
+                  disabled={isSending}
+                  className="w-full py-3 rounded-xl bg-[#D4537E] text-white uppercase tracking-wider text-xs md:text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
                   style={{ fontFamily: "'DM Sans', sans-serif" }}
-                  whileHover={{ scale: 1.015, boxShadow: '0 8px 30px rgba(212,83,126,0.4)' }}
-                  whileTap={{ scale: 0.98 }}
+                  whileHover={isSending ? {} : { scale: 1.015, boxShadow: '0 8px 30px rgba(212,83,126,0.4)' }}
+                  whileTap={isSending ? {} : { scale: 0.98 }}
                 >
-                  {T.contactSend}
+                  {isSending ? (
+                    <>
+                      <motion.span animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
+                        <Send size={14} />
+                      </motion.span>
+                      {lang === 'fr' ? 'Envoi…' : 'Sending…'}
+                    </>
+                  ) : (
+                    <>{T.contactSend}</>
+                  )}
                 </motion.button>
               </form>
             </div>
@@ -1167,6 +1320,89 @@ export default function App() {
                     )}
                   </div>
                 </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {/* Certification Zoom Lightbox Modal */}
+        {selectedCert && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-6">
+            {/* Backdrop */}
+            <motion.div
+              className="absolute inset-0 bg-black/85 backdrop-blur-md"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedCert(null)}
+            />
+
+            {/* Modal Box */}
+            <motion.div
+              className="relative w-full max-w-5xl h-[88vh] bg-[#141414] rounded-2xl md:rounded-3xl border border-white/15 shadow-2xl flex flex-col overflow-hidden z-10"
+              initial={{ opacity: 0, scale: 0.94, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.94, y: 20 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between px-6 py-4 bg-white/5 border-b border-white/10 flex-shrink-0">
+                <div className="flex items-center gap-3 min-w-0 pr-4">
+                  <div className="w-9 h-9 rounded-xl bg-[#D4537E]/20 border border-[#D4537E]/40 flex items-center justify-center flex-shrink-0">
+                    <Award size={18} className="text-[#D4537E]" />
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="text-white text-sm md:text-base font-bold truncate" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                      {selectedCert.title}
+                    </h3>
+                    <p className="text-white/50 text-xs truncate">
+                      {selectedCert.issuer} · {selectedCert.date[lang]}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {/* Direct verification link */}
+                  {selectedCert.credentialUrl && (
+                    <a
+                      href={selectedCert.credentialUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#D4537E] text-white text-xs font-bold hover:bg-[#b84368] transition-colors"
+                      style={{ fontFamily: "'DM Sans', sans-serif" }}
+                    >
+                      {T.certVerify} <ExternalLink size={12} />
+                    </a>
+                  )}
+
+                  {/* Download PDF button */}
+                  <a
+                    href={selectedCert.pdfUrl}
+                    download
+                    className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors"
+                    title={lang === 'fr' ? 'Télécharger le PDF' : 'Download PDF'}
+                  >
+                    <Download size={16} />
+                  </a>
+
+                  {/* Close button */}
+                  <button
+                    type="button"
+                    onClick={() => setSelectedCert(null)}
+                    className="p-2 rounded-xl bg-white/10 hover:bg-[#D4537E] text-white transition-colors"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+              </div>
+
+              {/* PDF Viewer Body */}
+              <div className="flex-1 w-full bg-[#0D0D0D] relative">
+                <iframe
+                  src={`${selectedCert.pdfUrl}#toolbar=1&navpanes=0&view=Fit`}
+                  title={selectedCert.title}
+                  className="w-full h-full border-0"
+                />
               </div>
             </motion.div>
           </div>

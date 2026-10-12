@@ -2,12 +2,21 @@
 @import './tailwind.css';
 @import './theme.css';
 
-html, body {
+/* On laisse le navigateur gérer 100% du scroll naturellement */
+html {
   scroll-behavior: smooth;
-  overflow-x: hidden;
 }
 
-/* Skill badges — hover rose via CSS pur (évite le stuck-hover de Framer Motion) */
+body {
+  margin: 0;
+  padding: 0;
+}
+
+#root {
+  width: 100%;
+}
+
+/* Skill badges — hover rose via CSS pur */
 .skill-badge {
   transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
@@ -15,11 +24,6 @@ html, body {
   background-color: #D4537E !important;
   color: #ffffff !important;
   border-color: #D4537E !important;
-}
-
-#root {
-  overflow-x: hidden;
-  width: 100%;
 }
 
 /* Une seule scrollbar custom — masque la native Windows */
