@@ -334,24 +334,33 @@ export default function App() {
           <img src={heroImg} alt="Oumaima Ameziane" className="w-full h-full object-cover object-[65%_30%] md:object-right" fetchPriority="high" />
         </motion.div>
 
-        {/* ── FIXED TOP BAR (Always visible during scrolling) ── */}
-        <div className="fixed top-0 left-0 right-0 z-40 px-5 md:px-10 py-3.5 md:py-4 flex items-center justify-between transition-all duration-300 bg-black/70 backdrop-blur-md border-b border-white/10">
-          <div className="flex flex-col gap-0.5">
-            <a href="#home" className="text-white text-xs md:text-sm tracking-wider font-bold hover:text-[#D4537E] transition-colors" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-              {T.jobTitle}
-            </a>
-            <p className="text-white/70 text-[10px] leading-relaxed max-w-[170px] md:hidden truncate" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-              {T.taglineMobile}
-            </p>
-          </div>
+        {/* Top-left label */}
+        <motion.div
+          className="absolute top-5 left-5 md:top-7 md:left-10 z-30 flex flex-col gap-1.5"
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.7, delay: 1.1 }}
+        >
+          <h2 className="text-white text-xs md:text-sm tracking-wider" style={{ fontFamily: "'DM Sans', sans-serif", fontWeight: 600 }}>
+            {T.jobTitle}
+          </h2>
+          <p className="text-white/80 text-[11px] leading-relaxed max-w-[140px] md:hidden" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+            {T.taglineMobile}
+          </p>
+        </motion.div>
 
-          <div className="flex items-center gap-3">
-            <p className="hidden md:block text-white/70 text-xs leading-relaxed text-right max-w-[240px]" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-              {T.tagline}
-            </p>
-            <LangSwitcher />
-          </div>
-        </div>
+        {/* Top-right: tagline + lang switcher */}
+        <motion.div
+          className="absolute top-5 right-5 md:top-7 md:right-10 z-30 flex flex-col items-end gap-3"
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.7, delay: 1.3 }}
+        >
+          <LangSwitcher />
+          <p className="hidden md:block text-white/80 text-xs leading-relaxed text-right max-w-[240px]" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+            {T.tagline}
+          </p>
+        </motion.div>
 
         {/* Name */}
         <div className="absolute bottom-[90px] md:bottom-0 left-0 right-0 z-30 px-5 md:px-10 md:pb-10">
@@ -374,77 +383,6 @@ export default function App() {
               </div>
             ))}
           </motion.h1>
-
-          {/* Nav */}
-          <motion.div
-            className="fixed bottom-5 md:bottom-6 left-0 right-0 z-50 flex justify-center px-3"
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.7 }}
-          >
-            {/* Desktop nav */}
-            <nav
-              className="hidden md:inline-flex items-center gap-1 px-3 py-2 rounded-full"
-              style={{ background: 'rgba(0,0,0,0.82)', backdropFilter: 'blur(18px)', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 16px 32px rgba(0,0,0,0.4)' }}
-            >
-              {([
-                { key: 'home' as const,         id: 'home' },
-                { key: 'about' as const,        id: 'about' },
-                { key: 'skills' as const,       id: 'skills' },
-                { key: 'experience' as const,   id: 'experience' },
-                { key: 'projects' as const,     id: 'projects' },
-                { key: 'activities' as const,   id: 'activities' },
-                { key: 'certifications' as const, id: 'certifications' },
-                { key: 'contact' as const,      id: 'contact' },
-              ] as { key: keyof typeof T.nav; id: string }[]).map(({ key, id }) => (
-                <motion.a
-                  key={id}
-                  href={`#${id}`}
-                  className={`px-4 py-1.5 rounded-full text-[10px] uppercase tracking-wider transition-all ${
-                    activeSection === id
-                      ? 'bg-[#D4537E] text-white shadow-[0_0_12px_rgba(212,83,126,0.5)]'
-                      : 'text-white/65 hover:text-white hover:bg-white/5'
-                  }`}
-                  style={{ fontFamily: "'DM Sans', sans-serif", fontWeight: 700 }}
-                  whileHover={{ scale: 1.04 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  {T.nav[key]}
-                </motion.a>
-              ))}
-            </nav>
-
-            {/* Mobile nav — icons */}
-            <nav
-              className="md:hidden inline-flex items-center gap-1 px-3 py-2 rounded-full"
-              style={{ background: 'rgba(0,0,0,0.82)', backdropFilter: 'blur(18px)', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 16px 32px rgba(0,0,0,0.4)' }}
-            >
-              {([
-                { icon: Home,          id: 'home' },
-                { icon: User,          id: 'about' },
-                { icon: Code,          id: 'skills' },
-                { icon: Briefcase,     id: 'experience' },
-                { icon: FolderOpen,    id: 'projects' },
-                { icon: Star,          id: 'activities' },
-                { icon: Award,         id: 'certifications' },
-                { icon: MessageCircle, id: 'contact' },
-              ] as { icon: LucideIcon; id: string }[]).map(({ icon: Icon, id }) => (
-                <motion.a
-                  key={id}
-                  href={`#${id}`}
-                  className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${
-                    activeSection === id
-                      ? 'bg-[#D4537E] text-white shadow-[0_0_12px_rgba(212,83,126,0.5)]'
-                      : 'text-white/60 hover:text-white hover:bg-white/10'
-                  }`}
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                >
-                  <Icon size={16} />
-                </motion.a>
-              ))}
-            </nav>
-          </motion.div>
         </div>
       </motion.section>
 
@@ -1417,6 +1355,79 @@ export default function App() {
         </div>
       </motion.section>
 
+      {/* ── FLOATING NAVIGATION DOCK (Truly fixed to viewport, persistent across all sections) ── */}
+      <motion.div
+        className={`fixed bottom-5 md:bottom-6 left-0 right-0 z-50 flex justify-center px-3 pointer-events-none transition-opacity duration-300 ${
+          isModalOpen || !!selectedReport || !!selectedCert ? 'opacity-0' : 'opacity-100'
+        }`}
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.7, delay: 0.7 }}
+      >
+        {/* Desktop nav */}
+        <nav
+          className="hidden md:inline-flex items-center gap-1 px-3 py-2 rounded-full pointer-events-auto"
+          style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(18px)', border: '1px solid rgba(255,255,255,0.12)', boxShadow: '0 16px 32px rgba(0,0,0,0.45)' }}
+        >
+          {([
+            { key: 'home' as const,         id: 'home' },
+            { key: 'about' as const,        id: 'about' },
+            { key: 'skills' as const,       id: 'skills' },
+            { key: 'experience' as const,   id: 'experience' },
+            { key: 'projects' as const,     id: 'projects' },
+            { key: 'activities' as const,   id: 'activities' },
+            { key: 'certifications' as const, id: 'certifications' },
+            { key: 'contact' as const,      id: 'contact' },
+          ] as { key: keyof typeof T.nav; id: string }[]).map(({ key, id }) => (
+            <motion.a
+              key={id}
+              href={`#${id}`}
+              className={`px-4 py-1.5 rounded-full text-[10px] uppercase tracking-wider transition-all ${
+                activeSection === id
+                  ? 'bg-[#D4537E] text-white shadow-[0_0_12px_rgba(212,83,126,0.5)]'
+                  : 'text-white/65 hover:text-white hover:bg-white/5'
+              }`}
+              style={{ fontFamily: "'DM Sans', sans-serif", fontWeight: 700 }}
+              whileHover={{ scale: 1.04 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              {T.nav[key]}
+            </motion.a>
+          ))}
+        </nav>
+
+        {/* Mobile nav — icons */}
+        <nav
+          className="md:hidden inline-flex items-center gap-1 px-3 py-2 rounded-full pointer-events-auto"
+          style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(18px)', border: '1px solid rgba(255,255,255,0.12)', boxShadow: '0 16px 32px rgba(0,0,0,0.45)' }}
+        >
+          {([
+            { icon: Home,          id: 'home' },
+            { icon: User,          id: 'about' },
+            { icon: Code,          id: 'skills' },
+            { icon: Briefcase,     id: 'experience' },
+            { icon: FolderOpen,    id: 'projects' },
+            { icon: Star,          id: 'activities' },
+            { icon: Award,         id: 'certifications' },
+            { icon: MessageCircle, id: 'contact' },
+          ] as { icon: LucideIcon; id: string }[]).map(({ icon: Icon, id }) => (
+            <motion.a
+              key={id}
+              href={`#${id}`}
+              className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${
+                activeSection === id
+                  ? 'bg-[#D4537E] text-white shadow-[0_0_12px_rgba(212,83,126,0.5)]'
+                  : 'text-white/60 hover:text-white hover:bg-white/10'
+              }`}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+            >
+              <Icon size={16} />
+            </motion.a>
+          ))}
+        </nav>
+      </motion.div>
+
       {/* ── MODAL ── */}
       <AnimatePresence>
         {isModalOpen && selectedItem && (
@@ -1437,41 +1448,44 @@ export default function App() {
               className="relative w-full md:max-w-5xl md:max-h-[90vh] max-h-[92vh] bg-white md:rounded-[28px] rounded-t-[28px] overflow-hidden shadow-2xl flex flex-col"
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Sticky Top Bar — ALWAYS stays visible when scrolling modal content */}
-              <div className="sticky top-0 z-50 bg-[#0D0D0D] px-4 md:px-8 py-3.5 border-b border-white/10 flex items-center justify-between flex-shrink-0">
-                <button
-                  type="button"
-                  onClick={closeModal}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/15 hover:bg-[#D4537E] text-white text-xs font-bold transition-all border border-white/20 cursor-pointer active:scale-95 shadow-md flex-shrink-0"
-                  style={{ fontFamily: "'DM Sans', sans-serif" }}
-                >
-                  <ChevronLeft size={16} />
-                  <span>{lang === 'fr' ? 'Retour' : 'Back'}</span>
-                </button>
+              {/* Single Retour button on top left */}
+              <button
+                type="button"
+                onClick={closeModal}
+                className="absolute top-4 left-4 z-50 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/15 hover:bg-[#D4537E] text-white text-xs font-bold transition-all border border-white/20 backdrop-blur-md cursor-pointer active:scale-95 shadow-md"
+                style={{ fontFamily: "'DM Sans', sans-serif" }}
+              >
+                <ChevronLeft size={16} />
+                <span>{lang === 'fr' ? 'Retour' : 'Back'}</span>
+              </button>
 
-                <div className="min-w-0 flex-1 px-3 text-center sm:text-left">
-                  <h3 className="text-white text-sm md:text-base font-bold truncate" style={{ fontFamily: "'Playfair Display', serif" }}>
-                    {selectedItem.title}
-                  </h3>
-                  <p className="text-[#D4537E] text-[10px] uppercase font-bold tracking-wider truncate">
-                    {selectedItem.category || selectedItem.type}
-                  </p>
-                </div>
-
-                <div className="w-10 sm:hidden flex-shrink-0" />
-              </div>
-
-              {/* Sub-header info band */}
-              <div className="bg-[#141414] px-6 md:px-10 py-4 border-b border-white/5 flex-shrink-0">
-                <div className="flex items-center gap-3 flex-wrap">
-                  {selectedItem.company && (
-                    <span className="text-[#D4537E] text-xs font-bold">{selectedItem.company}</span>
-                  )}
-                  {(selectedItem.date || selectedItem.location) && (
-                    <span className="text-white/50 text-xs">
-                      {selectedItem.date}{selectedItem.location ? ` · ${selectedItem.location}` : ''}
+              {/* Header band */}
+              <div className="bg-[#0D0D0D] px-6 md:px-10 pt-14 md:pt-16 pb-6 flex-shrink-0">
+                <div className="flex items-start gap-4">
+                  {/* Icon / initial */}
+                  <div className="w-12 h-12 rounded-2xl bg-[#D4537E] flex items-center justify-center flex-shrink-0">
+                    <span className="text-white font-black text-lg" style={{ fontFamily: "'Playfair Display', serif" }}>
+                      {selectedItem.title?.[0]}
                     </span>
-                  )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[10px] uppercase tracking-[0.3em] text-[#D4537E] font-black mb-1">
+                      {selectedItem.category || selectedItem.type}
+                    </div>
+                    <h2 className="text-white text-2xl md:text-3xl font-black leading-tight truncate" style={{ fontFamily: "'Playfair Display', serif" }}>
+                      {selectedItem.title}
+                    </h2>
+                    <div className="flex items-center gap-3 mt-2 flex-wrap">
+                      {selectedItem.company && (
+                        <span className="text-[#D4537E] text-xs font-bold">{selectedItem.company}</span>
+                      )}
+                      {(selectedItem.date || selectedItem.location) && (
+                        <span className="text-white/40 text-xs">
+                          {selectedItem.date}{selectedItem.location ? ` · ${selectedItem.location}` : ''}
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
 
