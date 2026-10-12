@@ -188,6 +188,7 @@ export default function App() {
     title: string;
     subtitle: string;
     pdfUrl: string;
+    previewImage?: string;
     github?: string;
   } | null>(null);
 
@@ -247,6 +248,21 @@ export default function App() {
   const openModal = (item: any) => {
     setSelectedItem(item);
     setIsModalOpen(true);
+  };
+
+  const getReportPreviewImage = (pdfUrl?: string) => {
+    if (!pdfUrl) return null;
+    const url = pdfUrl.toLowerCase();
+    if (url.includes('crm')) return '/projects/crm/preview_report.png';
+    if (url.includes('sgtu') || url.includes('microservice')) return '/projects/sgtu/preview_report.png';
+    if (url.includes('aurora')) return '/projects/aurora/preview_report.png';
+    if (url.includes('sook212') || url.includes('souk212')) return '/projects/souk212/preview_report.png';
+    if (url.includes('puiguin') || url.includes('penguin') || url.includes('rapportdocker')) return '/projects/penguin/preview_report.png';
+    if (url.includes('rapport_finale.pdf')) return '/projects/helpora/preview_report.png';
+    if (url.includes('rapport_projet_thl.pdf')) return '/projects/automates/preview_report.png';
+    if (url.includes('rapport_pfa.pdf')) return '/experiences/preview_report_pfa.png';
+    if (url.includes('rapport_stage_initiation.pdf')) return '/experiences/preview_report_initiation.png';
+    return null;
   };
 
   const closeModal = () => {
@@ -962,6 +978,7 @@ export default function App() {
                               title: proj.title,
                               subtitle: `${proj.category} · ${lang === 'fr' ? 'Rapport' : 'Report'}`,
                               pdfUrl: (proj as any).reportPdfUrl,
+                              previewImage: getReportPreviewImage((proj as any).reportPdfUrl) || undefined,
                               github: proj.github,
                             });
                           }}
@@ -1568,15 +1585,24 @@ export default function App() {
                             title: selectedItem.title,
                             subtitle: `${selectedItem.type === 'experience' ? selectedItem.company : selectedItem.category} · ${selectedItem.type === 'experience' ? (lang === 'fr' ? 'Rapport de stage' : 'Internship report') : (lang === 'fr' ? 'Rapport de projet' : 'Project report')}`,
                             pdfUrl: selectedItem.reportPdfUrl,
+                            previewImage: getReportPreviewImage(selectedItem.reportPdfUrl) || undefined,
                             github: selectedItem.github,
                           })}
-                          className="relative h-44 rounded-xl overflow-hidden bg-black/5 border border-black/10 cursor-pointer group/report"
+                          className="relative h-44 rounded-xl overflow-hidden bg-[#0D0D0D] border border-black/10 cursor-pointer group/report flex items-center justify-center"
                         >
-                          <iframe
-                            src={`${selectedItem.reportPdfUrl}#page=1&toolbar=0&navpanes=0&view=FitH`}
-                            title="Aperçu rapport"
-                            className="w-full h-full border-0 pointer-events-none"
-                          />
+                          {getReportPreviewImage(selectedItem.reportPdfUrl) ? (
+                            <img
+                              src={getReportPreviewImage(selectedItem.reportPdfUrl)!}
+                              alt="Aperçu rapport"
+                              className="w-full h-full object-contain p-2"
+                            />
+                          ) : (
+                            <iframe
+                              src={`${selectedItem.reportPdfUrl}#page=1&toolbar=0&navpanes=0&view=FitH`}
+                              title="Aperçu rapport"
+                              className="w-full h-full border-0 pointer-events-none"
+                            />
+                          )}
                           <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/report:opacity-100 transition-opacity flex items-center justify-center gap-2 text-white">
                             <div className="px-3 py-1.5 rounded-full bg-[#D4537E] text-[11px] font-bold flex items-center gap-1.5 shadow-lg">
                               <Maximize2 size={12} />
@@ -1590,6 +1616,7 @@ export default function App() {
                             title: selectedItem.title,
                             subtitle: `${selectedItem.type === 'experience' ? selectedItem.company : selectedItem.category} · ${selectedItem.type === 'experience' ? (lang === 'fr' ? 'Rapport de stage' : 'Internship report') : (lang === 'fr' ? 'Rapport de projet' : 'Project report')}`,
                             pdfUrl: selectedItem.reportPdfUrl,
+                            previewImage: getReportPreviewImage(selectedItem.reportPdfUrl) || undefined,
                             github: selectedItem.github,
                           })}
                           className="mt-3 w-full py-2 px-3 rounded-xl bg-[#0D0D0D] hover:bg-[#D4537E] text-white text-[11px] font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
@@ -1708,13 +1735,40 @@ export default function App() {
                 </div>
               </div>
 
-              {/* PDF Viewer Body — Full interactive viewer for both mobile & desktop */}
-              <div className="flex-1 w-full bg-[#0D0D0D] relative flex flex-col min-h-0">
-                <iframe
-                  src={`${selectedReport.pdfUrl}#toolbar=1&navpanes=0&view=Fit`}
-                  title={selectedReport.title}
-                  className="w-full h-full flex-1 border-0"
-                />
+              {/* PDF Viewer Body — Responsive Global View for phone + Desktop */}
+              <div className="flex-1 w-full bg-[#0D0D0D] relative flex flex-col min-h-0 overflow-auto">
+                {getReportPreviewImage(selectedReport.pdfUrl) ? (
+                  <div className="w-full h-full flex flex-col items-center justify-between p-3 md:p-6 overflow-y-auto">
+                    {/* Centered full-page cover preview: 100% fitted to screen without any horizontal clipping */}
+                    <div className="flex-1 w-full flex items-center justify-center min-h-0 py-2">
+                      <img
+                        src={getReportPreviewImage(selectedReport.pdfUrl)!}
+                        alt={selectedReport.title}
+                        className="max-w-full max-h-[66vh] md:max-h-[72vh] object-contain rounded-xl shadow-2xl border border-white/10"
+                      />
+                    </div>
+                    {/* Clear action bar to read full multi-page PDF */}
+                    <div className="w-full flex items-center justify-center pt-2 pb-1 flex-shrink-0">
+                      <a
+                        href={selectedReport.pdfUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-[#D4537E] text-white text-xs md:text-sm font-bold active:scale-95 transition-all shadow-xl hover:bg-[#b84368]"
+                        style={{ fontFamily: "'DM Sans', sans-serif" }}
+                      >
+                        <FileText size={14} />
+                        <span>{lang === 'fr' ? 'Lire le document PDF complet (toutes les pages)' : 'Read full multi-page PDF document'}</span>
+                        <ExternalLink size={13} />
+                      </a>
+                    </div>
+                  </div>
+                ) : (
+                  <iframe
+                    src={`${selectedReport.pdfUrl}#toolbar=1&navpanes=0&view=Fit`}
+                    title={selectedReport.title}
+                    className="w-full h-full flex-1 border-0"
+                  />
+                )}
               </div>
             </motion.div>
           </div>
