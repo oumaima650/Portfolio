@@ -1735,40 +1735,25 @@ export default function App() {
                 </div>
               </div>
 
-              {/* PDF Viewer Body — Responsive Global View for phone + Desktop */}
-              <div className="flex-1 w-full bg-[#0D0D0D] relative flex flex-col min-h-0 overflow-auto">
-                {getReportPreviewImage(selectedReport.pdfUrl) ? (
-                  <div className="w-full h-full flex flex-col items-center justify-between p-3 md:p-6 overflow-y-auto">
-                    {/* Centered full-page cover preview: 100% fitted to screen without any horizontal clipping */}
-                    <div className="flex-1 w-full flex items-center justify-center min-h-0 py-2">
-                      <img
-                        src={getReportPreviewImage(selectedReport.pdfUrl)!}
-                        alt={selectedReport.title}
-                        className="max-w-full max-h-[66vh] md:max-h-[72vh] object-contain rounded-xl shadow-2xl border border-white/10"
-                      />
-                    </div>
-                    {/* Clear action bar to read full multi-page PDF */}
-                    <div className="w-full flex items-center justify-center pt-2 pb-1 flex-shrink-0">
-                      <a
-                        href={selectedReport.pdfUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-[#D4537E] text-white text-xs md:text-sm font-bold active:scale-95 transition-all shadow-xl hover:bg-[#b84368]"
-                        style={{ fontFamily: "'DM Sans', sans-serif" }}
-                      >
-                        <FileText size={14} />
-                        <span>{lang === 'fr' ? 'Lire le document PDF complet (toutes les pages)' : 'Read full multi-page PDF document'}</span>
-                        <ExternalLink size={13} />
-                      </a>
-                    </div>
-                  </div>
-                ) : (
-                  <iframe
-                    src={`${selectedReport.pdfUrl}#toolbar=1&navpanes=0&view=Fit`}
-                    title={selectedReport.title}
-                    className="w-full h-full flex-1 border-0"
-                  />
-                )}
+              {/* PDF Viewer Body — Full embedded multi-page viewer */}
+              <div className="flex-1 w-full bg-[#0D0D0D] relative flex flex-col min-h-0">
+                {(() => {
+                  const pdfUrl = selectedReport.pdfUrl;
+                  const isExternal = pdfUrl.startsWith('http');
+                  // For external (Cloudinary) PDFs: use Google Docs Viewer which renders full multi-page inline on mobile
+                  // For local PDFs: use native browser iframe
+                  const viewerSrc = isExternal
+                    ? `https://docs.google.com/gview?embedded=true&url=${encodeURIComponent(pdfUrl)}`
+                    : `${pdfUrl}#toolbar=1&navpanes=0&view=Fit`;
+                  return (
+                    <iframe
+                      src={viewerSrc}
+                      title={selectedReport.title}
+                      className="w-full h-full flex-1 border-0"
+                      allow="autoplay"
+                    />
+                  );
+                })()}
               </div>
             </motion.div>
           </div>
