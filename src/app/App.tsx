@@ -130,8 +130,8 @@ function CvDownloadButton({ T }: { T: typeof import('./translations').t['fr'] })
             transition={{ duration: 0.2, ease: 'easeOut' }}
           >
             {[
-              { label: T.cvFr, flag: '🇫🇷', file: '/CV_Ameziane_Oumaima_Software_Engineer.pdf' },
-              { label: T.cvEn, flag: '🇬🇧', file: '/Resume_Ameziane_Oumaima_Software_Engineer.pdf' },
+              { label: T.cvFr, flag: '🇫🇷', file: '/CV_Ameziane_Oumaima.pdf' },
+              { label: T.cvEn, flag: '🇬🇧', file: '/RESUME_Ameziane_Oumaima.pdf' },
             ].map(({ label, flag, file }, i) => (
               <motion.a
                 key={file}
