@@ -1597,11 +1597,18 @@ export default function App() {
                               className="w-full h-full object-contain p-2"
                             />
                           ) : (
-                            <iframe
-                              src={`${selectedItem.reportPdfUrl}#page=1&toolbar=0&navpanes=0&view=FitH`}
-                              title="Aperçu rapport"
-                              className="w-full h-full border-0 pointer-events-none"
-                            />
+                            (() => {
+                              const localUrl = selectedItem.reportPdfUrl.startsWith('http')
+                                ? selectedItem.reportPdfUrl
+                                : `${window.location.origin}${selectedItem.reportPdfUrl}`;
+                              return (
+                                <iframe
+                                  src={`https://docs.google.com/gview?embedded=true&url=${encodeURIComponent(localUrl)}`}
+                                  title="Aperçu rapport"
+                                  className="w-full h-full border-0 pointer-events-none"
+                                />
+                              );
+                            })()
                           )}
                           <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/report:opacity-100 transition-opacity flex items-center justify-center gap-2 text-white">
                             <div className="px-3 py-1.5 rounded-full bg-[#D4537E] text-[11px] font-bold flex items-center gap-1.5 shadow-lg">
@@ -1739,12 +1746,12 @@ export default function App() {
               <div className="flex-1 w-full bg-[#0D0D0D] relative flex flex-col min-h-0">
                 {(() => {
                   const pdfUrl = selectedReport.pdfUrl;
-                  const isExternal = pdfUrl.startsWith('http');
-                  // For external (Cloudinary) PDFs: use Google Docs Viewer which renders full multi-page inline on mobile
-                  // For local PDFs: use native browser iframe
-                  const viewerSrc = isExternal
-                    ? `https://docs.google.com/gview?embedded=true&url=${encodeURIComponent(pdfUrl)}`
-                    : `${pdfUrl}#toolbar=1&navpanes=0&view=Fit`;
+                  // Always use Google Docs Viewer for universal cross-device rendering
+                  // For local PDFs, construct the full public URL so Google can fetch them
+                  const fullPdfUrl = pdfUrl.startsWith('http')
+                    ? pdfUrl
+                    : `${window.location.origin}${pdfUrl}`;
+                  const viewerSrc = `https://docs.google.com/gview?embedded=true&url=${encodeURIComponent(fullPdfUrl)}`;
                   return (
                     <iframe
                       src={viewerSrc}
