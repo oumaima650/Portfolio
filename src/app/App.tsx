@@ -1,11 +1,17 @@
 import { motion, useScroll, useTransform, AnimatePresence } from 'motion/react';
 import { useState, useRef, useEffect } from 'react';
-import emailjs from '@emailjs/browser';
 import { toast, Toaster } from 'sonner';
-import { ExternalLink, Mail, Phone, Linkedin, Github, Heart, MapPin, X, Home, User, Code, Briefcase, FolderOpen, Star, MessageCircle, Award, Download, ChevronDown, ChevronLeft, ChevronRight, Send, Maximize2, Eye, FileText, Images, type LucideIcon } from 'lucide-react';
+import { ExternalLink, Mail, Linkedin, Github, Heart, MapPin, X, Home, User, Code, Briefcase, FolderOpen, Star, MessageCircle, Award, Download, ChevronDown, ChevronLeft, ChevronRight, Send, Maximize2, Eye, FileText, Images, type LucideIcon } from 'lucide-react';
 import profileImg from '../imports/image-1.png';
 import heroImg from '../imports/image-0.webp';
 import { t, DATA, CERTIFICATIONS, type Lang, type CertificationItem } from './translations';
+import {
+  CONTACT_LIMITS,
+  validateContactForm,
+  type ContactErrors,
+  type ContactErrorCode,
+  type ContactField,
+} from '@/lib/contactValidation';
 
 // image map for projects (by id) — remplace par tes vraies images dans public/projets/
 const PROJECT_IMAGES: Record<string, string> = {
@@ -162,11 +168,33 @@ function CvDownloadButton({ T }: { T: typeof import('./translations').t['fr'] })
   );
 }
 
-// ── APP ───────────────────────────────────────────────────────────────────────
-const EMAILJS_SERVICE_ID  = 'service_xf6wlzq';
-const EMAILJS_TEMPLATE_ID = 'template_50yx5ji';
-const EMAILJS_PUBLIC_KEY  = 'iMfMME6SkHJDTNTxY';
+// ── CONTACT FORM — libellés des erreurs de validation (codes -> FR/EN) ────────
+const CONTACT_ERROR_LABELS: Record<Lang, Record<ContactErrorCode, string>> = {
+  fr: {
+    name_required: 'Veuillez indiquer votre nom.',
+    name_length: `Le nom doit contenir entre ${CONTACT_LIMITS.nameMin} et ${CONTACT_LIMITS.nameMax} caractères.`,
+    name_format: 'Le nom ne peut contenir que des lettres, des espaces, des tirets et des apostrophes.',
+    email_required: 'Veuillez indiquer votre adresse e-mail.',
+    email_invalid: "L'adresse e-mail n'est pas valide.",
+    subject_too_long: `Le sujet ne doit pas dépasser ${CONTACT_LIMITS.subjectMax} caractères.`,
+    message_required: 'Veuillez écrire un message.',
+    message_too_short: `Le message doit contenir au moins ${CONTACT_LIMITS.messageMin} caractères.`,
+    message_too_long: `Le message ne doit pas dépasser ${CONTACT_LIMITS.messageMax} caractères.`,
+  },
+  en: {
+    name_required: 'Please enter your name.',
+    name_length: `Your name must be between ${CONTACT_LIMITS.nameMin} and ${CONTACT_LIMITS.nameMax} characters.`,
+    name_format: 'Your name may only contain letters, spaces, hyphens and apostrophes.',
+    email_required: 'Please enter your email address.',
+    email_invalid: 'This email address is not valid.',
+    subject_too_long: `The subject must not exceed ${CONTACT_LIMITS.subjectMax} characters.`,
+    message_required: 'Please write a message.',
+    message_too_short: `Your message must be at least ${CONTACT_LIMITS.messageMin} characters long.`,
+    message_too_long: `Your message must not exceed ${CONTACT_LIMITS.messageMax} characters.`,
+  },
+};
 
+// ── APP ───────────────────────────────────────────────────────────────────────
 export default function App() {
   const [lang, setLang] = useState<Lang>('fr');
   const [showAllProjects, setShowAllProjects] = useState(false);
@@ -177,6 +205,8 @@ export default function App() {
 
   // Contact form state
   const [formData, setFormData] = useState({ name: '', email: '', subject: '', message: '' });
+  const [fieldErrors, setFieldErrors] = useState<ContactErrors>({});
+  const [honeypot, setHoneypot] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [formStatus, setFormStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
@@ -193,44 +223,45 @@ export default function App() {
   } | null>(null);
 
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    const field = e.target.name as ContactField;
+    setFormData((prev) => ({ ...prev, [field]: e.target.value }));
+    setFieldErrors((prev) => (prev[field] ? { ...prev, [field]: undefined } : prev));
     if (formStatus !== 'idle') setFormStatus('idle');
   };
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.email || !formData.message) {
+
+    // 1. Validation côté client : simple confort d'usage, elle est rejouée
+    //    intégralement par /api/contact (qui fait autorité).
+    const local = validateContactForm(formData, lang);
+    setFieldErrors(local.errors);
+    if (!local.ok) {
       setFormStatus('error');
       return;
     }
+
     setIsSending(true);
     setFormStatus('idle');
-    const isFr = lang === 'fr';
     try {
-      await emailjs.send(
-        EMAILJS_SERVICE_ID,
-        EMAILJS_TEMPLATE_ID,
-        {
-          from_name:  formData.name,
-          from_email: formData.email,
-          name:       formData.name,
-          email:      formData.email,
-          subject:    formData.subject || (isFr ? 'Message depuis le portfolio' : 'Message from portfolio'),
-          message:    formData.message,
+      // 2. L'envoi EmailJS passe par la fonction serverless : la clé privée
+      //    reste côté serveur et les champs y sont revalidés puis échappés.
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...local.value, lang, contact_website: honeypot }),
+      });
+      const result = (await response.json().catch(() => null)) as
+        | { ok?: boolean; errors?: ContactErrors }
+        | null;
 
-          // Auto-Reply dynamic variables (FR / EN)
-          reply_subject: isFr
-            ? 'Accusé de réception — Merci pour votre message !'
-            : 'Confirmation — Thank you for reaching out!',
-          greeting: isFr ? 'Bonjour' : 'Hello',
-          reply_body: isFr
-            ? "Merci d'avoir pris le temps de me contacter via mon portfolio. J'ai bien reçu votre message et je reviendrai vers vous dans les plus brefs délais."
-            : "Thank you for reaching out through my portfolio. I have received your message and will get back to you shortly.",
-          signoff: isFr ? 'Bien cordialement' : 'Best regards',
-          role: isFr ? 'Élève Ingénieure en Génie Informatique' : 'Computer Engineering Student',
-        },
-        EMAILJS_PUBLIC_KEY
-      );
+      if (!response.ok || !result?.ok) {
+        if (result?.errors) setFieldErrors(result.errors);
+        setFormStatus('error');
+        return;
+      }
+
+      setFieldErrors({});
       setFormStatus('success');
       setFormData({ name: '', email: '', subject: '', message: '' });
     } catch {
@@ -1265,7 +1296,6 @@ export default function App() {
               <div className="space-y-3 md:space-y-4">
                 {[
                   { icon: Mail,     label: 'oumaima.ameziane8@gmail.com', href: 'mailto:oumaima.ameziane8@gmail.com' },
-                  { icon: Phone,    label: '+212 621 811 707',             href: 'tel:+212621811707' },
                   { icon: MapPin,   label: 'ENSA Tetouan, Maroc',          href: null },
                   { icon: Linkedin, label: 'Ameziane Oumaima',             href: 'https://www.linkedin.com/in/oumaima-ameziane-037473331/' },
                   { icon: Github,   label: 'oumaima650',                   href: 'https://github.com/oumaima650' },
@@ -1284,27 +1314,67 @@ export default function App() {
               </div>
             </div>
             <div>
-              <form className="space-y-4" onSubmit={handleFormSubmit}>
-                <input
-                  type="text" name="name" placeholder={T.contactName} value={formData.name} onChange={handleFormChange} required
-                  className="w-full px-4 md:px-5 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-white/35 focus:border-[#D4537E] outline-none transition-all text-xs md:text-sm"
-                  style={{ fontFamily: "'DM Sans', sans-serif" }}
-                />
-                <input
-                  type="email" name="email" placeholder={T.contactEmail} value={formData.email} onChange={handleFormChange} required
-                  className="w-full px-4 md:px-5 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-white/35 focus:border-[#D4537E] outline-none transition-all text-xs md:text-sm"
-                  style={{ fontFamily: "'DM Sans', sans-serif" }}
-                />
-                <input
-                  type="text" name="subject" placeholder={T.contactSubject} value={formData.subject} onChange={handleFormChange}
-                  className="w-full px-4 md:px-5 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-white/35 focus:border-[#D4537E] outline-none transition-all text-xs md:text-sm"
-                  style={{ fontFamily: "'DM Sans', sans-serif" }}
-                />
-                <textarea
-                  name="message" rows={4} placeholder={T.contactMessage} value={formData.message} onChange={handleFormChange} required
-                  className="w-full px-4 md:px-5 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-white/35 focus:border-[#D4537E] outline-none resize-none transition-all text-xs md:text-sm"
-                  style={{ fontFamily: "'DM Sans', sans-serif" }}
-                />
+              <form className="space-y-4" onSubmit={handleFormSubmit} noValidate>
+                {/* Champ piège anti-spam : hors écran, invisible pour un visiteur */}
+                <div className="absolute left-[-9999px] top-0 w-px h-px overflow-hidden" aria-hidden="true">
+                  <label htmlFor="contact-website">Site web</label>
+                  <input
+                    id="contact-website" type="text" name="contact_website" tabIndex={-1} autoComplete="off"
+                    value={honeypot} onChange={(e) => setHoneypot(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <input
+                    type="text" name="name" placeholder={T.contactName} value={formData.name} onChange={handleFormChange} required
+                    maxLength={CONTACT_LIMITS.nameMax} aria-invalid={!!fieldErrors.name}
+                    className="w-full px-4 md:px-5 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-white/35 focus:border-[#D4537E] outline-none transition-all text-xs md:text-sm"
+                    style={{ fontFamily: "'DM Sans', sans-serif" }}
+                  />
+                  {fieldErrors.name && (
+                    <p className="mt-1.5 text-[11px] text-red-300" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                      {CONTACT_ERROR_LABELS[lang][fieldErrors.name]}
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <input
+                    type="email" name="email" placeholder={T.contactEmail} value={formData.email} onChange={handleFormChange} required
+                    maxLength={CONTACT_LIMITS.emailMax} aria-invalid={!!fieldErrors.email}
+                    className="w-full px-4 md:px-5 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-white/35 focus:border-[#D4537E] outline-none transition-all text-xs md:text-sm"
+                    style={{ fontFamily: "'DM Sans', sans-serif" }}
+                  />
+                  {fieldErrors.email && (
+                    <p className="mt-1.5 text-[11px] text-red-300" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                      {CONTACT_ERROR_LABELS[lang][fieldErrors.email]}
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <input
+                    type="text" name="subject" placeholder={T.contactSubject} value={formData.subject} onChange={handleFormChange}
+                    maxLength={CONTACT_LIMITS.subjectMax} aria-invalid={!!fieldErrors.subject}
+                    className="w-full px-4 md:px-5 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-white/35 focus:border-[#D4537E] outline-none transition-all text-xs md:text-sm"
+                    style={{ fontFamily: "'DM Sans', sans-serif" }}
+                  />
+                  {fieldErrors.subject && (
+                    <p className="mt-1.5 text-[11px] text-red-300" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                      {CONTACT_ERROR_LABELS[lang][fieldErrors.subject]}
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <textarea
+                    name="message" rows={4} placeholder={T.contactMessage} value={formData.message} onChange={handleFormChange} required
+                    maxLength={CONTACT_LIMITS.messageMax} aria-invalid={!!fieldErrors.message}
+                    className="w-full px-4 md:px-5 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-white/35 focus:border-[#D4537E] outline-none resize-none transition-all text-xs md:text-sm"
+                    style={{ fontFamily: "'DM Sans', sans-serif" }}
+                  />
+                  {fieldErrors.message && (
+                    <p className="mt-1.5 text-[11px] text-red-300" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                      {CONTACT_ERROR_LABELS[lang][fieldErrors.message]}
+                    </p>
+                  )}
+                </div>
 
                 {/* Inline feedback message */}
                 <AnimatePresence>

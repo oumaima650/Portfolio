@@ -84,6 +84,9 @@ typings/
 .env.test.local
 .env.production.local
 
+# Vercel
+.vercel
+
 # parcel-bundler cache (https://parceljs.org/)
 .cache
 .parcel-cache
@@ -138,3 +141,6 @@ dist-ssr
 
 # Production
 /build
+
+.vercel
+.env*
