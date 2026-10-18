@@ -12,7 +12,10 @@
 //   EMAILJS_SERVICE_ID / EMAILJS_TEMPLATE_ID / EMAILJS_PUBLIC_KEY  (optionnelles,
 //   valeurs publiques par défaut ci-dessous)
 
-import { escapeHtml, validateContactForm } from '../src/lib/contactValidation';
+// L'extension `.js` est obligatoire : le projet est en ESM ("type": "module"),
+// et Node refuse les imports relatifs sans extension dans la fonction déployée.
+// Le bundler Vercel résout bien `.js` vers le fichier source `.ts`.
+import { escapeHtml, validateContactForm } from '../src/lib/contactValidation.js';
 
 const EMAILJS_ENDPOINT = 'https://api.emailjs.com/api/v1.0/email/send';
 
