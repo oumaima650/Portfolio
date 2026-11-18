@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
-  Users, Eye, Download, Github, Linkedin, Clock,
+  Users, Eye, EyeOff, Download, Github, Linkedin, Clock,
   TrendingUp, Globe, Monitor, Smartphone, LogOut,
   RefreshCw, BarChart2, MessageSquare, Zap, Lock
 } from 'lucide-react';
@@ -107,6 +107,7 @@ function StatCard({ icon: Icon, label, value, sub, color = PINK }: {
 // ── Login page ────────────────────────────────────────────────────────────────
 function LoginPage({ onLogin }: { onLogin: (token: string) => void }) {
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -150,14 +151,23 @@ function LoginPage({ onLogin }: { onLogin: (token: string) => void }) {
         <p className="text-sm text-gray-500 text-center mb-6">Portfolio Analytics</p>
 
         <form onSubmit={submit} className="space-y-4">
-          <input
-            type="password"
+          <div className="relative">
+            type={showPassword ? 'text' : 'password'}
             placeholder="Mot de passe"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-pink-400 outline-none text-sm"
+            className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-pink-400 outline-none text-sm pr-11"
             autoFocus
           />
+          <button
+            type="button"
+            onClick={() => setShowPassword((v) => !v)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+            tabIndex={-1}
+          >
+            {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+          </button>
+          </div>
           {error && <p className="text-red-500 text-xs text-center">{error}</p>}
           <motion.button
             type="submit"
