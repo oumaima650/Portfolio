@@ -152,21 +152,22 @@ function LoginPage({ onLogin }: { onLogin: (token: string) => void }) {
 
         <form onSubmit={submit} className="space-y-4">
           <div className="relative">
-            type={showPassword ? 'text' : 'password'}
-            placeholder="Mot de passe"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-pink-400 outline-none text-sm pr-11"
-            autoFocus
-          />
-          <button
-            type="button"
-            onClick={() => setShowPassword((v) => !v)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-            tabIndex={-1}
-          >
-            {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-          </button>
+            <input
+              type={showPassword ? 'text' : 'password'}
+              placeholder="Mot de passe"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-pink-400 outline-none text-sm pr-11"
+              autoFocus
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((v) => !v)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+              tabIndex={-1}
+            >
+              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
           </div>
           {error && <p className="text-red-500 text-xs text-center">{error}</p>}
           <motion.button
