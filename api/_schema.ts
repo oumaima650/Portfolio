@@ -10,12 +10,12 @@ export async function ensureSchema(sql: Sql) {
     id SERIAL PRIMARY KEY, created_at TIMESTAMPTZ DEFAULT NOW(),
     device TEXT, browser TEXT, os TEXT, country TEXT, city TEXT,
     referrer TEXT, ref_param TEXT, lang TEXT, session_id TEXT UNIQUE,
-    duration_seconds INTEGER, returning BOOLEAN DEFAULT FALSE
+    duration_seconds INTEGER, is_returning BOOLEAN DEFAULT FALSE
   )`;
   await sql`ALTER TABLE visits ADD COLUMN IF NOT EXISTS country TEXT`;
   await sql`ALTER TABLE visits ADD COLUMN IF NOT EXISTS city TEXT`;
   await sql`ALTER TABLE visits ADD COLUMN IF NOT EXISTS duration_seconds INTEGER`;
-  await sql`ALTER TABLE visits ADD COLUMN IF NOT EXISTS returning BOOLEAN DEFAULT FALSE`;
+  await sql`ALTER TABLE visits ADD COLUMN IF NOT EXISTS is_returning BOOLEAN DEFAULT FALSE`;
   await sql`CREATE TABLE IF NOT EXISTS events (
     id SERIAL PRIMARY KEY, created_at TIMESTAMPTZ DEFAULT NOW(),
     session_id TEXT, type TEXT NOT NULL, label TEXT, value TEXT, seconds INTEGER

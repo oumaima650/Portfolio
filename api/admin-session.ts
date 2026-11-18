@@ -21,7 +21,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     await ensureSchema(sql);
 
     const [visit, events] = await Promise.all([
-      sql`SELECT created_at, device, browser, os, country, city, referrer, ref_param, lang, duration_seconds, returning, session_id
+      sql`SELECT created_at, device, browser, os, country, city, referrer, ref_param, lang, duration_seconds, is_returning, session_id
           FROM visits WHERE session_id = ${sid} LIMIT 1`,
       sql`SELECT created_at, type, label, value, seconds FROM events
           WHERE session_id = ${sid} ORDER BY created_at ASC`,

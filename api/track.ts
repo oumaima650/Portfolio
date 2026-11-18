@@ -22,7 +22,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const { country, city } = geoFromRequest(req);
       const existing = await sql`SELECT id FROM visits WHERE session_id = ${sessionId} LIMIT 1`;
       if (existing.length === 0) {
-        await sql`INSERT INTO visits (session_id, device, browser, os, country, city, referrer, ref_param, lang, returning)
+        await sql`INSERT INTO visits (session_id, device, browser, os, country, city, referrer, ref_param, lang, is_returning)
                   VALUES (${sessionId}, ${device}, ${browser}, ${os}, ${country}, ${city}, ${referrer}, ${refParam}, ${lang}, ${!!returning})`;
         await sql`INSERT INTO events (session_id, type, label, value, seconds)
                   VALUES (${sessionId}, 'visit', 'arrivee', ${lang}, NULL)`;

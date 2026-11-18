@@ -48,7 +48,7 @@ interface RecentVisit {
   ref_param: string | null;
   lang: string | null;
   duration_seconds: number | null;
-  returning: boolean | null;
+  is_returning: boolean | null;
   session_id: string;
 }
 
@@ -403,7 +403,7 @@ function SessionJourney({ token, sessionId, onClose }: {
                 {[
                   visit.device, visit.browser, visit.os,
                   [visit.city, visit.country].filter(Boolean).join(', ') || null,
-                  visit.returning ? 'Visiteur de retour' : 'Nouveau visiteur',
+                  visit.is_returning ? 'Visiteur de retour' : 'Nouveau visiteur',
                   `Langue ${visit.lang ?? '-'}`,
                 ].filter(Boolean).map((chip, i) => (
                   <span key={i} className="px-3 py-1.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700">{chip}</span>
@@ -972,7 +972,7 @@ function RecentTable({ visits, compact = false, onOpen }: {
                 <td className="py-3 text-gray-600 whitespace-nowrap" title={new Date(v.created_at).toLocaleString('fr-FR')}>
                   <span className="inline-flex items-center gap-1.5">
                     {relativeTime(v.created_at)}
-                    {v.returning && (
+                    {v.is_returning && (
                       <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold" style={{ backgroundColor: '#E0A45820', color: '#B8802F' }} title="Visiteur de retour">
                         <RefreshCw size={10} /> retour
                       </span>
