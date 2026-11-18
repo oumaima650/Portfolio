@@ -1,6 +1,4 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -11,24 +9,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const { password } = req.body ?? {};
+    if (!password) return res.status(400).json({ error: 'Missing password' });
 
-    if (!password) {
-      return res.status(400).json({ error: 'Missing password' });
-    }
+    // Import dynamique pour éviter les problèmes de bundling
+    const bcrypt = await import('bcryptjs');
+    const jwt = await import('jsonwebtoken');
 
     const hash = process.env.ADMIN_PASSWORD_HASH;
     const secret = process.env.JWT_SECRET;
 
-    // Debug: vérifier que les env vars sont présentes
     if (!hash || !secret) {
-      console.error('Missing env vars:', { hash: !!hash, secret: !!secret });
-      return res.status(500).json({ error: 'Server configuration error' });
+      console.error('Missing env:', { hasHash: !!hash, hasSecret: !!secret });
+      return res.status(500).json({ error: 'Missing configuration' });
     }
 
     const valid = await bcrypt.compare(String(password), String(hash));
-
     if (!valid) {
-      await new Promise((r) => setTimeout(r, 1000));
+      await new Promise((r) => setTimeout(r, 800));
       return res.status(401).json({ error: 'Invalid password' });
     }
 
@@ -37,6 +34,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   } catch (err) {
     console.error('Login error:', err);
-    return res.status(500).json({ error: 'Internal server error', detail: String(err) });
+    return res.status(500).json({ error: String(err) });
   }
 }
