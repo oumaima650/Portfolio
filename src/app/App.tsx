@@ -6,6 +6,10 @@ import profileImg from '../imports/image-1.png';
 import heroImg from '../imports/image-0.webp';
 import { t, DATA, CERTIFICATIONS, type Lang, type CertificationItem } from './translations';
 import {
+  trackVisit, trackGithubClick, trackLinkedinClick, trackCvDownload,
+  trackProjectOpen, trackContactFormSent, trackSectionTime, trackLiveDemoClick, trackScrollDepth,
+} from './analytics';
+import {
   CONTACT_LIMITS,
   validateContactForm,
   type ContactErrors,
@@ -136,14 +140,14 @@ function CvDownloadButton({ T }: { T: typeof import('./translations').t['fr'] })
             transition={{ duration: 0.2, ease: 'easeOut' }}
           >
             {[
-              { label: T.cvFr, flag: '🇫🇷', file: '/CV_Ameziane_Oumaima.pdf' },
-              { label: T.cvEn, flag: '🇬🇧', file: '/RESUME_Ameziane_Oumaima.pdf' },
-            ].map(({ label, flag, file }, i) => (
+              { label: T.cvFr, flag: '🇫🇷', file: '/CV_Ameziane_Oumaima.pdf',    version: 'FR' as const },
+              { label: T.cvEn, flag: '🇬🇧', file: '/RESUME_Ameziane_Oumaima.pdf', version: 'EN' as const },
+            ].map(({ label, flag, file, version }, i) => (
               <motion.a
                 key={file}
                 href={file}
                 download
-                onClick={() => setOpen(false)}
+                onClick={() => { setOpen(false); trackCvDownload(version); }}
                 className="flex items-center gap-3 px-5 py-3.5 hover:bg-[#F8F7F2] transition-colors text-[#0D0D0D] text-sm font-semibold border-b border-black/5 last:border-0"
                 style={{ fontFamily: "'DM Sans', sans-serif" }}
                 initial={{ opacity: 0, x: -10 }}
@@ -263,6 +267,8 @@ export default function App() {
 
       setFieldErrors({});
       setFormStatus('success');
+      // Track contact form submission
+      trackContactFormSent(formData.message);
       setFormData({ name: '', email: '', subject: '', message: '' });
     } catch {
       setFormStatus('error');
@@ -279,6 +285,8 @@ export default function App() {
   const openModal = (item: any) => {
     setSelectedItem(item);
     setIsModalOpen(true);
+    // Track project/experience open
+    if (item.title) trackProjectOpen(item.title);
   };
 
   const getReportPreviewImage = (pdfUrl?: string) => {
@@ -313,15 +321,55 @@ export default function App() {
   }, [isModalOpen, selectedReport, selectedCert]);
 
   useEffect(() => {
+    // Track visit on mount
+    trackVisit();
+
+    // Scroll depth tracking
+    const scrolled = new Set<number>();
+    const handleScroll = () => {
+      const percent = Math.round((window.scrollY / (document.body.scrollHeight - window.innerHeight)) * 100);
+      ([25, 50, 75, 100] as const).forEach((p) => {
+        if (percent >= p && !scrolled.has(p)) {
+          scrolled.add(p);
+          trackScrollDepth(p);
+        }
+      });
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  useEffect(() => {
+    // Section time tracking
+    let sectionStart = Date.now();
+    let currentSection = '';
     const observer = new IntersectionObserver(
-      (entries) => entries.forEach((e) => e.isIntersecting && setActiveSection(e.target.id)),
+      (entries) => entries.forEach((e) => {
+        if (e.isIntersecting) {
+          // Track time on previous section
+          if (currentSection) {
+            const seconds = Math.round((Date.now() - sectionStart) / 1000);
+            trackSectionTime(currentSection, seconds);
+          }
+          currentSection = e.target.id;
+          sectionStart = Date.now();
+          setActiveSection(e.target.id);
+        }
+      }),
       { rootMargin: '-50% 0px -50% 0px', threshold: 0 }
     );
     ['home', 'about', 'skills', 'experience', 'projects', 'activities', 'certifications', 'contact'].forEach((id) => {
       const el = document.getElementById(id);
       if (el) observer.observe(el);
     });
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      // Track last section on unmount
+      if (currentSection) {
+        const seconds = Math.round((Date.now() - sectionStart) / 1000);
+        trackSectionTime(currentSection, seconds);
+      }
+    };
   }, []);
 
   const { scrollY } = useScroll();
@@ -991,7 +1039,7 @@ export default function App() {
                             href={(proj as any).liveUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            onClick={(e) => e.stopPropagation()}
+                            onClick={(e) => { e.stopPropagation(); trackLiveDemoClick(proj.title); }}
                             className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#D4537E] text-white text-[10px] font-bold hover:bg-[#B84368] transition-all"
                           >
                             <ExternalLink size={10} />
@@ -1295,17 +1343,27 @@ export default function App() {
               <p className="text-white/65 text-sm md:text-base mb-8 leading-relaxed" style={{ fontFamily: "'DM Sans', sans-serif" }}>{T.contactDesc}</p>
               <div className="space-y-3 md:space-y-4">
                 {[
-                  { icon: Mail,     label: 'oumaima.ameziane8@gmail.com', href: 'mailto:oumaima.ameziane8@gmail.com' },
-                  { icon: MapPin,   label: 'ENSA Tetouan, Maroc',          href: null },
-                  { icon: Linkedin, label: 'Ameziane Oumaima',             href: 'https://www.linkedin.com/in/oumaima-ameziane-037473331/' },
-                  { icon: Github,   label: 'oumaima650',                   href: 'https://github.com/oumaima650' },
-                ].map(({ icon: Icon, label, href }) => (
+                  { icon: Mail,     label: 'oumaima.ameziane8@gmail.com', href: 'mailto:oumaima.ameziane8@gmail.com', track: null },
+                  { icon: MapPin,   label: 'ENSA Tetouan, Maroc',          href: null, track: null },
+                  { icon: Linkedin, label: 'Ameziane Oumaima',             href: 'https://www.linkedin.com/in/oumaima-ameziane-037473331/', track: 'linkedin' },
+                  { icon: Github,   label: 'oumaima650',                   href: 'https://github.com/oumaima650', track: 'github' },
+                ].map(({ icon: Icon, label, href, track }) => (
                   <div key={label} className="flex items-center gap-3 group">
                     <div className="w-9 h-9 md:w-10 md:h-10 rounded-xl bg-[#D4537E]/10 border border-[#D4537E]/30 flex items-center justify-center group-hover:bg-[#D4537E] transition-all flex-shrink-0">
                       <Icon size={15} className="text-[#D4537E] group-hover:text-white transition-colors" />
                     </div>
                     {href ? (
-                      <a href={href} target={href.startsWith('http') ? '_blank' : undefined} rel="noopener noreferrer" className="text-white/75 hover:text-[#D4537E] transition-colors text-xs md:text-sm break-all" style={{ fontFamily: "'DM Sans', sans-serif" }}>{label}</a>
+                      <a
+                        href={href}
+                        target={href.startsWith('http') ? '_blank' : undefined}
+                        rel="noopener noreferrer"
+                        className="text-white/75 hover:text-[#D4537E] transition-colors text-xs md:text-sm break-all"
+                        style={{ fontFamily: "'DM Sans', sans-serif" }}
+                        onClick={() => {
+                          if (track === 'linkedin') trackLinkedinClick();
+                          if (track === 'github') trackGithubClick('Portfolio contact');
+                        }}
+                      >{label}</a>
                     ) : (
                       <span className="text-white/75 text-xs md:text-sm" style={{ fontFamily: "'DM Sans', sans-serif" }}>{label}</span>
                     )}
@@ -1715,6 +1773,7 @@ export default function App() {
                           rel="noopener noreferrer"
                           className="flex items-center gap-3 p-3 rounded-xl border border-black/8 hover:border-[#D4537E]/40 hover:bg-[#F8F7F2] transition-all group"
                           whileHover={{ x: 3 }}
+                          onClick={() => trackGithubClick(selectedItem.title)}
                         >
                           <div className="w-8 h-8 rounded-lg bg-[#0D0D0D] flex items-center justify-center flex-shrink-0">
                             <Github size={14} className="text-white" />
