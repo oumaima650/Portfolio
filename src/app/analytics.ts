@@ -21,6 +21,16 @@ function getSessionId(): string {
   return sid;
 }
 
+function isReturningVisitor(): boolean {
+  try {
+    const seen = localStorage.getItem('pf_visited') === '1';
+    localStorage.setItem('pf_visited', '1');
+    return seen;
+  } catch {
+    return false;
+  }
+}
+
 function getDeviceMeta() {
   const ua = navigator.userAgent;
   const isMobile = /Mobi|Android/i.test(ua);
@@ -32,6 +42,7 @@ function getDeviceMeta() {
     referrer: document.referrer || '',
     refParam: new URLSearchParams(window.location.search).get('ref') ?? '',
     lang: (document.documentElement.lang || 'fr').toUpperCase(),
+    returning: isReturningVisitor(),
   };
 }
 
@@ -91,4 +102,36 @@ export function trackLiveDemoClick(projectTitle: string) {
 export function trackScrollDepth(percent: 25 | 50 | 75 | 100) {
   ga('scroll_depth', { percent });
   track({ type: 'scroll_depth', label: 'scroll', value: String(percent) });
+}
+
+// Consultation / visionnage d'un rapport PDF (projet ou stage)
+export function trackReportOpen(title: string, kind: string) {
+  ga('report_open', { title, kind });
+  track({ type: 'report_open', label: title, value: kind });
+}
+
+export function trackReportDownload(title: string) {
+  ga('report_download', { title });
+  track({ type: 'report_download', label: title });
+}
+
+// Consultation d'un certificat
+export function trackCertOpen(title: string) {
+  ga('cert_open', { title });
+  track({ type: 'cert_open', label: title });
+}
+
+// Durée totale passée sur le portfolio : envoyée via sendBeacon pour survivre
+// à la fermeture de l'onglet.
+export function trackSessionEnd(seconds: number) {
+  if (seconds < 2) return;
+  ga('session_end', { seconds });
+  try {
+    const body = JSON.stringify({ type: 'session_end', seconds, sessionId: getSessionId() });
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon('/api/track', new Blob([body], { type: 'application/json' }));
+    } else {
+      track({ type: 'session_end', seconds });
+    }
+  } catch { /* silently fail */ }
 }

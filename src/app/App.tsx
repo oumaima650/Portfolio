@@ -8,6 +8,7 @@ import { t, DATA, CERTIFICATIONS, type Lang, type CertificationItem } from './tr
 import {
   trackVisit, trackGithubClick, trackLinkedinClick, trackCvDownload,
   trackProjectOpen, trackContactFormSent, trackSectionTime, trackLiveDemoClick, trackScrollDepth,
+  trackReportOpen, trackReportDownload, trackCertOpen, trackSessionEnd,
 } from './analytics';
 import {
   CONTACT_LIMITS,
@@ -340,17 +341,23 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    // Section time tracking
-    let sectionStart = Date.now();
+    // Suivi du temps passé par section + durée totale de la visite
     let currentSection = '';
+    let sectionStart = Date.now();
+    const sessionStart = Date.now();
+
+    const flushSection = () => {
+      if (currentSection) {
+        const seconds = Math.round((Date.now() - sectionStart) / 1000);
+        trackSectionTime(currentSection, seconds);
+        sectionStart = Date.now();
+      }
+    };
+
     const observer = new IntersectionObserver(
       (entries) => entries.forEach((e) => {
         if (e.isIntersecting) {
-          // Track time on previous section
-          if (currentSection) {
-            const seconds = Math.round((Date.now() - sectionStart) / 1000);
-            trackSectionTime(currentSection, seconds);
-          }
+          flushSection();
           currentSection = e.target.id;
           sectionStart = Date.now();
           setActiveSection(e.target.id);
@@ -362,15 +369,36 @@ export default function App() {
       const el = document.getElementById(id);
       if (el) observer.observe(el);
     });
-    return () => {
-      observer.disconnect();
-      // Track last section on unmount
-      if (currentSection) {
-        const seconds = Math.round((Date.now() - sectionStart) / 1000);
-        trackSectionTime(currentSection, seconds);
+
+    // À la fermeture / mise en arrière-plan de l'onglet : on enregistre le temps
+    // de la dernière section et la durée totale passée sur le portfolio.
+    const handleHide = () => {
+      if (document.visibilityState === 'hidden') {
+        flushSection();
+        trackSessionEnd(Math.round((Date.now() - sessionStart) / 1000));
       }
     };
+    document.addEventListener('visibilitychange', handleHide);
+    window.addEventListener('pagehide', handleHide);
+
+    return () => {
+      observer.disconnect();
+      document.removeEventListener('visibilitychange', handleHide);
+      window.removeEventListener('pagehide', handleHide);
+      flushSection();
+      trackSessionEnd(Math.round((Date.now() - sessionStart) / 1000));
+    };
   }, []);
+
+  // Consultation d'un rapport PDF (projet ou stage)
+  useEffect(() => {
+    if (selectedReport) trackReportOpen(selectedReport.title, selectedReport.subtitle ?? '');
+  }, [selectedReport]);
+
+  // Consultation d'un certificat
+  useEffect(() => {
+    if (selectedCert) trackCertOpen(selectedCert.title);
+  }, [selectedCert]);
 
   const { scrollY } = useScroll();
   const heroOpacity = useTransform(scrollY, [0, 400], [1, 0.3]);
@@ -1702,6 +1730,7 @@ export default function App() {
                           <a
                             href={selectedItem.reportPdfUrl}
                             download
+                            onClick={() => trackReportDownload(selectedItem.title)}
                             className="p-1.5 rounded-lg bg-white border border-[#D4537E]/30 text-[#D4537E] hover:bg-[#D4537E] hover:text-white transition-colors"
                             title={lang === 'fr' ? 'Télécharger le rapport' : 'Download report'}
                           >
@@ -1863,6 +1892,7 @@ export default function App() {
                   <a
                     href={selectedReport.pdfUrl}
                     download
+                    onClick={() => trackReportDownload(selectedReport.title)}
                     className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors"
                     title={lang === 'fr' ? 'Télécharger le rapport' : 'Download report'}
                   >
