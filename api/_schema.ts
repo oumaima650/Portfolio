@@ -1,5 +1,6 @@
 import type { VercelRequest } from '@vercel/node';
 import type { neon } from '@neondatabase/serverless';
+import { isIP } from 'node:net';
 
 export type Sql = ReturnType<typeof neon>;
 
@@ -37,6 +38,70 @@ export function geoFromRequest(req: VercelRequest): { country: string | null; ci
     try { city = decodeURIComponent(city); } catch { /* garde la valeur brute */ }
   }
   return { country, city };
+}
+
+export function publicClientIp(req: VercelRequest): string | null {
+  const header = req.headers['x-forwarded-for'] ?? req.headers['x-real-ip'];
+  const raw = Array.isArray(header) ? header[0] : header;
+  const ip = raw?.split(',')[0]?.trim();
+  if (!ip) return null;
+
+  const version = isIP(ip);
+  if (version === 4) {
+    const [a, b] = ip.split('.').map(Number);
+    if (
+      a === 0 || a === 10 || a === 127 || a >= 224 ||
+      (a === 100 && b >= 64 && b <= 127) ||
+      (a === 169 && b === 254) ||
+      (a === 172 && b >= 16 && b <= 31) ||
+      (a === 192 && b === 168)
+    ) return null;
+    return ip;
+  }
+
+  if (version === 6) {
+    const normalized = ip.toLowerCase();
+    if (
+      normalized === '::' || normalized === '::1' ||
+      /^(fc|fd|ff|fe[89ab])/.test(normalized)
+    ) return null;
+    return ip;
+  }
+
+  return null;
+}
+
+// The external lookup is best-effort; Vercel's result remains the fallback.
+export async function resolveGeoFromRequest(req: VercelRequest): Promise<{ country: string | null; city: string | null }> {
+  const vercelGeo = geoFromRequest(req);
+  const ip = publicClientIp(req);
+  if (!ip) return vercelGeo;
+
+  try {
+    const response = await fetch(`https://ipwho.is/${encodeURIComponent(ip)}`, {
+      headers: { Accept: 'application/json' },
+      signal: AbortSignal.timeout(1800),
+    });
+    if (!response.ok) return vercelGeo;
+
+    const data = await response.json() as {
+      success?: boolean;
+      country_code?: string;
+      city?: string;
+    };
+    const country = data.country_code?.toUpperCase();
+    if (!data.success || !country || !/^[A-Z]{2}$/.test(country)) return vercelGeo;
+
+    // Keep Vercel's location if providers disagree on the country.
+    if (vercelGeo.country && vercelGeo.country.toUpperCase() !== country) return vercelGeo;
+
+    return {
+      country,
+      city: data.city?.trim() || vercelGeo.city,
+    };
+  } catch {
+    return vercelGeo;
+  }
 }
 
 // ── Auth admin (JWT) ──────────────────────────────────────────────────────────

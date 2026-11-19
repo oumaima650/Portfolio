@@ -953,7 +953,9 @@ function RecentTable({ visits, compact = false, onOpen }: {
             <th className="text-left pb-2.5 font-bold">Appareil</th>
             {!compact && <th className="text-left pb-2.5 font-bold">Navigateur</th>}
             {!compact && <th className="text-left pb-2.5 font-bold">OS</th>}
-            <th className="text-left pb-2.5 font-bold">Lieu</th>
+            <th className="text-left pb-2.5 font-bold" title="Ville estimée à partir de l'adresse IP, sans GPS">
+              Lieu estimé (IP)
+            </th>
             <th className="text-left pb-2.5 font-bold">Source</th>
             <th className="text-left pb-2.5 font-bold">Durée</th>
             {!compact && <th className="text-left pb-2.5 font-bold">Langue</th>}

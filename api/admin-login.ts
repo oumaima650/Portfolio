@@ -1,4 +1,16 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { geoFromRequest, publicClientIp, sendNtfy } from './_schema';
+
+function describeClient(req: VercelRequest): string {
+  const { country, city } = geoFromRequest(req);
+  const ip = publicClientIp(req);
+  const time = new Date().toLocaleString('fr-FR', { timeZone: 'Europe/Paris' });
+  return [
+    [city, country].filter(Boolean).join(', ') || null,
+    ip ? `IP : ${ip}` : null,
+    `Heure : ${time}`,
+  ].filter(Boolean).join('\n');
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -25,11 +37,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const valid = await bcrypt.compare(String(password), String(hash));
     if (!valid) {
+      await sendNtfy(
+        'Alerte - Acces admin refuse',
+        `Mot de passe incorrect.\n${describeClient(req)}`,
+        4,
+      );
       await new Promise((r) => setTimeout(r, 800));
       return res.status(401).json({ error: 'Invalid password' });
     }
 
     const token = jwt.sign({ admin: true }, secret, { expiresIn: '24h' });
+    await sendNtfy(
+      'Connexion admin reussie',
+      `Quelqu'un a ouvert le dashboard admin.\n${describeClient(req)}`,
+      3,
+    );
     return res.status(200).json({ token });
 
   } catch (err) {

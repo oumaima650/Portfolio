@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { ensureSchema, geoFromRequest, sendNtfy } from './_schema';
+import { ensureSchema, resolveGeoFromRequest, sendNtfy } from './_schema';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -19,9 +19,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // ── Visite ────────────────────────────────────────────────────────────────
     if (type === 'visit') {
       const { device, browser, os, referrer, refParam, lang, returning } = meta ?? {};
-      const { country, city } = geoFromRequest(req);
       const existing = await sql`SELECT id FROM visits WHERE session_id = ${sessionId} LIMIT 1`;
       if (existing.length === 0) {
+        const { country, city } = await resolveGeoFromRequest(req);
         await sql`INSERT INTO visits (session_id, device, browser, os, country, city, referrer, ref_param, lang, is_returning)
                   VALUES (${sessionId}, ${device}, ${browser}, ${os}, ${country}, ${city}, ${referrer}, ${refParam}, ${lang}, ${!!returning})`;
         await sql`INSERT INTO events (session_id, type, label, value, seconds)
@@ -30,7 +30,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const where = [city, country].filter(Boolean).join(', ');
         const lines = [
           `${device} · ${browser} · ${os}`,
-          where ? `Localisation : ${where}` : null,
+          where ? `Ville estimée par IP : ${where}` : null,
           `Source : ${src}${refParam ? ` (campagne ${refParam})` : ''}`,
           returning ? 'Visiteur de retour' : 'Nouveau visiteur',
           `Heure : ${time}`,
