@@ -136,7 +136,7 @@ function SectionCard({ title, icon: Icon, children, action }: {
 }) {
   return (
     <div className="bg-white rounded-2xl p-5 md:p-6 border border-gray-200 shadow-sm">
-      <div className="flex items-center justify-between gap-3 mb-1">
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 mb-1">
         <h2 className="text-base font-black text-gray-900 flex items-center gap-2.5">
           <span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: `${PINK}15` }}>
             <Icon size={16} style={{ color: PINK }} />
@@ -165,15 +165,15 @@ function StatCard({ icon: Icon, label, value, sub, color = PINK, trend }: {
 }) {
   const up = (trend ?? 0) >= 0;
   return (
-    <div className="bg-white rounded-2xl p-5 border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+    <div className="bg-white rounded-2xl p-4 sm:p-5 border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
       <div className="flex items-center gap-3 mb-4">
-        <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: `${color}18` }}>
+        <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: `${color}18` }}>
           <Icon size={20} style={{ color }} />
         </div>
         <div className="text-sm font-bold text-gray-700 leading-tight">{label}</div>
       </div>
       <div className="flex items-end justify-between gap-2">
-        <div className="text-3xl font-black text-gray-900 leading-none tabular-nums">{value}</div>
+        <div className="text-2xl sm:text-3xl font-black text-gray-900 leading-none tabular-nums">{value}</div>
         {trend !== undefined && trend !== null && (
           <span className="flex items-center gap-0.5 text-xs font-bold px-2 py-0.5 rounded-full shrink-0"
             style={{ color: up ? '#16A085' : '#E74C3C', backgroundColor: up ? '#16A08518' : '#E74C3C18' }}>
@@ -202,7 +202,7 @@ function BarList({ data, labelKey, valueKey, color = PINK, fmtLabel }: {
         const raw = String(d[labelKey]);
         return (
           <div key={i} className="flex items-center gap-3 text-sm">
-            <span className="w-32 md:w-44 truncate text-gray-700 font-semibold shrink-0" title={raw}>
+            <span className="w-24 sm:w-40 md:w-44 truncate text-gray-700 font-semibold shrink-0" title={raw}>
               {fmtLabel ? fmtLabel(raw) : raw}
             </span>
             <div className="flex-1 bg-gray-100 rounded-full h-2.5 overflow-hidden">
@@ -380,7 +380,7 @@ function SessionJourney({ token, sessionId, onClose }: {
               <Route size={17} style={{ color: PINK }} />
             </div>
             <div className="min-w-0">
-              <h3 className="text-lg font-black text-gray-900">Parcours de la visite</h3>
+              <h3 className="text-base sm:text-lg font-black text-gray-900">Parcours de la visite</h3>
               <p className="text-xs text-gray-500 truncate">
                 {visit ? `${new Date(visit.created_at).toLocaleString('fr-FR')} · durée ${fmtDur(totalDur)}` : sessionId}
               </p>
@@ -391,7 +391,7 @@ function SessionJourney({ token, sessionId, onClose }: {
           </button>
         </div>
 
-        <div className="overflow-y-auto p-5">
+        <div className="overflow-y-auto p-4 sm:p-5">
           {loading && <p className="text-xs text-gray-400 text-center py-8">Chargement du parcours...</p>}
 
           {!loading && !visit && <EmptyState label="Visite introuvable" />}
@@ -428,7 +428,7 @@ function SessionJourney({ token, sessionId, onClose }: {
                   <div className="space-y-2.5">
                     {sections.map(([name, secs]) => (
                       <div key={name} className="flex items-center gap-3 text-sm">
-                        <span className="w-28 truncate text-gray-700 font-semibold capitalize">{name}</span>
+                        <span className="w-24 sm:w-28 truncate text-gray-700 font-semibold capitalize">{name}</span>
                         <div className="flex-1 bg-gray-100 rounded-full h-2 overflow-hidden">
                           <div className="h-full rounded-full" style={{ width: `${Math.min((secs / (sections[0][1] || 1)) * 100, 100)}%`, backgroundColor: PINK }} />
                         </div>
@@ -568,6 +568,9 @@ const TABS = [
 type TabId = typeof TABS[number]['id'];
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
+// Évite un double appel de notification (StrictMode / re-render).
+let openNotified = false;
+
 export default function AdminDashboard() {
   const [token, setToken] = useState<string | null>(() => localStorage.getItem('admin_token'));
   const [stats, setStats] = useState<Stats | null>(null);
@@ -579,6 +582,13 @@ export default function AdminDashboard() {
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [journey, setJourney] = useState<string | null>(null);
+
+  // Prévient la propriétaire dès qu'une personne ouvre la page du dashboard.
+  useEffect(() => {
+    if (openNotified) return;
+    openNotified = true;
+    fetch('/api/admin-open', { method: 'POST' }).catch(() => { /* silencieux */ });
+  }, []);
 
   const fetchStats = useCallback(async (t: string, silent = false) => {
     if (silent) setRefreshing(true); else setLoading(true);
@@ -626,7 +636,7 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white border-b border-gray-100 px-4 md:px-8 py-4 flex items-center justify-between gap-3 sticky top-0 z-50 shadow-sm">
+      <div className="bg-white border-b border-gray-100 px-4 sm:px-6 md:px-8 py-4 flex flex-wrap items-center justify-between gap-3 sticky top-0 z-50 shadow-sm">
         <div className="flex items-center gap-3 min-w-0">
           <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: `${PINK}18` }}>
             <BarChart2 size={16} style={{ color: PINK }} />
@@ -680,7 +690,7 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 md:px-8 py-6">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 md:px-8 py-5 sm:py-6">
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-red-600 text-sm mb-6">{error}</div>
         )}
@@ -724,7 +734,7 @@ export default function AdminDashboard() {
                 {/* ── VUE D'ENSEMBLE ── */}
                 {tab === 'overview' && (
                   <>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
                       <StatCard icon={Users} label="Visites" value={s.totalVisits} sub={`vs ${s.prevVisits} période préc.`} trend={visitsTrend} />
                       <StatCard icon={Globe} label="Visiteurs uniques" value={s.uniqueVisitors} color="#7C6BF0" />
                       <StatCard icon={Clock} label="Temps moyen" value={fmtDur(s.avgDuration)} color="#2AA198" sub={`Total ${fmtDur(s.totalDuration)}`} />
@@ -750,46 +760,14 @@ export default function AdminDashboard() {
                         <BarList data={s.visitsByReferrer} labelKey="source" valueKey="count" />
                       </SectionCard>
                     </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <SectionCard title="Pays des visiteurs" icon={MapPin}>
-                        <BarList data={s.visitsByCountry} labelKey="country" valueKey="count" color="#7C6BF0" fmtLabel={countryLabel} />
-                      </SectionCard>
-                      <SectionCard title="Projets les plus consultés" icon={Eye}>
-                        <BarList data={s.topProjects} labelKey="label" valueKey="count" color="#2AA198" />
-                      </SectionCard>
-                    </div>
-
-                    <SectionCard title="Dernières visites" icon={Clock}
-                      action={
-                        <span className="text-xs text-gray-500 flex items-center gap-1">
-                          <Activity size={13} /> temps réel
-                        </span>
-                      }>
-                      <RecentTable visits={s.recentVisits.slice(0, 8)} compact onOpen={setJourney} />
-                    </SectionCard>
                   </>
                 )}
 
                 {/* ── TRAFIC ── */}
                 {tab === 'traffic' && (
                   <>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      <StatCard icon={Users} label="Visites (période)" value={s.totalVisits} trend={visitsTrend} />
-                      <StatCard icon={Globe} label="Visiteurs uniques" value={s.uniqueVisitors} color="#7C6BF0" />
-                      <StatCard icon={Clock} label="Temps moyen" value={fmtDur(s.avgDuration)} color="#2AA198" sub={`Total ${fmtDur(s.totalDuration)}`} />
-                      <StatCard icon={RefreshCw} label="Visiteurs de retour" value={s.returningVisits} color="#E0A458" />
-                    </div>
-
-                    <SectionCard title="Visites par jour" icon={TrendingUp}>
-                      <AreaChart data={s.visitsByDay} />
-                    </SectionCard>
-
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <SectionCard title="Sources de trafic" icon={Globe}>
-                        <BarList data={s.visitsByReferrer} labelKey="source" valueKey="count" />
-                      </SectionCard>
-                      <SectionCard title="Pays" icon={MapPin}>
+                      <SectionCard title="Pays des visiteurs" icon={MapPin}>
                         <BarList data={s.visitsByCountry} labelKey="country" valueKey="count" color="#7C6BF0" fmtLabel={countryLabel} />
                       </SectionCard>
                       <SectionCard title="Navigateurs" icon={Compass}>
@@ -798,34 +776,20 @@ export default function AdminDashboard() {
                       <SectionCard title="Systèmes d'exploitation" icon={Monitor}>
                         <BarList data={s.visitsByOs} labelKey="os" valueKey="count" color="#9B59B6" />
                       </SectionCard>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <SectionCard title="Langue du portfolio" icon={Globe}>
                         <BarList data={s.visitsByLang} labelKey="lang" valueKey="count" color="#E0A458" />
                       </SectionCard>
-                      <SectionCard title="Appareils" icon={Smartphone}>
-                        <Donut
-                          centerLabel="VISITES"
-                          data={s.visitsByDevice.map((d, i) => ({ label: d.device, count: Number(d.count), color: PALETTE[i % PALETTE.length] }))}
-                        />
-                      </SectionCard>
                     </div>
-
-                    <SectionCard title="Toutes les visites récentes" icon={Clock}>
-                      <RecentTable visits={s.recentVisits} onOpen={setJourney} />
-                    </SectionCard>
                   </>
                 )}
 
                 {/* ── SESSIONS ── */}
                 {tab === 'sessions' && (
                   <>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      <StatCard icon={Route} label="Sessions (période)" value={s.totalVisits} />
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
                       <StatCard icon={Clock} label="Temps moyen / visite" value={fmtDur(s.avgDuration)} color="#2AA198" />
-                      <StatCard icon={RefreshCw} label="Visiteurs de retour" value={s.returningVisits} color="#E0A458" />
                       <StatCard icon={Activity} label="Temps cumulé" value={fmtDur(s.totalDuration)} color="#7C6BF0" />
+                      <StatCard icon={RefreshCw} label="Visiteurs de retour" value={s.returningVisits} color="#E0A458" />
                     </div>
 
                     <SectionCard
@@ -951,14 +915,14 @@ function RecentTable({ visits, compact = false, onOpen }: {
           <tr className="text-gray-500 uppercase tracking-wider border-b border-gray-200">
             <th className="text-left pb-2.5 font-bold">Quand</th>
             <th className="text-left pb-2.5 font-bold">Appareil</th>
-            {!compact && <th className="text-left pb-2.5 font-bold">Navigateur</th>}
-            {!compact && <th className="text-left pb-2.5 font-bold">OS</th>}
+            {!compact && <th className="hidden md:table-cell text-left pb-2.5 font-bold">Navigateur</th>}
+            {!compact && <th className="hidden lg:table-cell text-left pb-2.5 font-bold">OS</th>}
             <th className="text-left pb-2.5 font-bold" title="Ville estimée à partir de l'adresse IP, sans GPS">
               Lieu estimé (IP)
             </th>
-            <th className="text-left pb-2.5 font-bold">Source</th>
+            <th className="hidden sm:table-cell text-left pb-2.5 font-bold">Source</th>
             <th className="text-left pb-2.5 font-bold">Durée</th>
-            {!compact && <th className="text-left pb-2.5 font-bold">Langue</th>}
+            {!compact && <th className="hidden sm:table-cell text-left pb-2.5 font-bold">Langue</th>}
             {clickable && <th className="text-left pb-2.5 font-bold">Détail</th>}
           </tr>
         </thead>
@@ -986,15 +950,15 @@ function RecentTable({ visits, compact = false, onOpen }: {
                     <Dev size={14} className="text-gray-400" /> {v.device ?? '-'}
                   </span>
                 </td>
-                {!compact && <td className="py-3 text-gray-600">{v.browser ?? '-'}</td>}
-                {!compact && <td className="py-3 text-gray-600">{v.os ?? '-'}</td>}
+                {!compact && <td className="hidden md:table-cell py-3 text-gray-600">{v.browser ?? '-'}</td>}
+                {!compact && <td className="hidden lg:table-cell py-3 text-gray-600">{v.os ?? '-'}</td>}
                 <td className="py-3 text-gray-600">
                   <span className="inline-flex items-center gap-1">
                     <MapPin size={13} className="text-gray-400" />
                     {[v.city, v.country].filter(Boolean).join(', ') || '-'}
                   </span>
                 </td>
-                <td className="py-3">
+                <td className="hidden sm:table-cell py-3">
                   <span className="px-2.5 py-1 rounded-full text-xs font-bold whitespace-nowrap" style={{ backgroundColor: `${PINK}15`, color: PINK }}>
                     {sourceLabel(v)}
                   </span>
@@ -1004,7 +968,7 @@ function RecentTable({ visits, compact = false, onOpen }: {
                     <Clock size={13} className="text-gray-400" /> {fmtDur(v.duration_seconds)}
                   </span>
                 </td>
-                {!compact && <td className="py-3 uppercase font-bold" style={{ color: PINK }}>{v.lang ?? '-'}</td>}
+                {!compact && <td className="hidden sm:table-cell py-3 uppercase font-bold" style={{ color: PINK }}>{v.lang ?? '-'}</td>}
                 {clickable && (
                   <td className="py-3">
                     <span className="inline-flex items-center gap-1 text-xs font-bold whitespace-nowrap" style={{ color: PINK }}>
