@@ -11,12 +11,14 @@ export async function ensureSchema(sql: Sql) {
     id SERIAL PRIMARY KEY, created_at TIMESTAMPTZ DEFAULT NOW(),
     device TEXT, browser TEXT, os TEXT, country TEXT, city TEXT,
     referrer TEXT, ref_param TEXT, lang TEXT, session_id TEXT UNIQUE,
-    duration_seconds INTEGER, is_returning BOOLEAN DEFAULT FALSE
+    duration_seconds INTEGER, is_returning BOOLEAN DEFAULT FALSE,
+    company TEXT
   )`;
   await sql`ALTER TABLE visits ADD COLUMN IF NOT EXISTS country TEXT`;
   await sql`ALTER TABLE visits ADD COLUMN IF NOT EXISTS city TEXT`;
   await sql`ALTER TABLE visits ADD COLUMN IF NOT EXISTS duration_seconds INTEGER`;
   await sql`ALTER TABLE visits ADD COLUMN IF NOT EXISTS is_returning BOOLEAN DEFAULT FALSE`;
+  await sql`ALTER TABLE visits ADD COLUMN IF NOT EXISTS company TEXT`;
   await sql`CREATE TABLE IF NOT EXISTS events (
     id SERIAL PRIMARY KEY, created_at TIMESTAMPTZ DEFAULT NOW(),
     session_id TEXT, type TEXT NOT NULL, label TEXT, value TEXT, seconds INTEGER
@@ -38,6 +40,29 @@ export function geoFromRequest(req: VercelRequest): { country: string | null; ci
     try { city = decodeURIComponent(city); } catch { /* garde la valeur brute */ }
   }
   return { country, city };
+}
+
+// Extrait un nom d'entreprise lisible à partir d'un referrer (domaine hors TLD connu).
+export function companyFromReferrer(referrer: string | null | undefined): string | null {
+  if (!referrer) return null;
+  let host = referrer;
+  try {
+    host = new URL(referrer).hostname || referrer;
+  } catch { /* garde la valeur brute */ }
+  const parts = host.replace(/^www\./, '').split('.');
+  if (parts.length < 2) return null;
+  const tlds = new Set(['com', 'fr', 'ma', 'net', 'org', 'io', 'co', 'gov', 'edu', 'info', 'biz', 'dev', 'app', 'me', 'io', 'ai']);
+  const name = parts[parts.length - 2]?.toLowerCase();
+  if (!name) return null;
+  const known: Record<string, string> = {
+    linkedin: 'LinkedIn', github: 'GitHub', google: 'Google', facebook: 'Facebook',
+    twitter: 'Twitter / X', x: 'Twitter / X', youtube: 'YouTube', instagram: 'Instagram',
+    indeed: 'Indeed', glassdoor: 'Glassdoor', oracle: 'Oracle', microsoft: 'Microsoft',
+    amazon: 'Amazon', apple: 'Apple', meta: 'Meta', atlassian: 'Atlassian',
+  };
+  if (known[name]) return known[name];
+  if (tlds.has(name)) return null;
+  return name.charAt(0).toUpperCase() + name.slice(1);
 }
 
 export function publicClientIp(req: VercelRequest): string | null {
@@ -71,9 +96,14 @@ export function publicClientIp(req: VercelRequest): string | null {
   return null;
 }
 
-// The external lookup is best-effort; Vercel's result remains the fallback.
+// Vercel's own headers are the primary source (its geo database is more
+// reliable than third parties, which often misplace entire ISP blocks).
+// The external lookup is best-effort and only fills in what Vercel omits.
 export async function resolveGeoFromRequest(req: VercelRequest): Promise<{ country: string | null; city: string | null }> {
   const vercelGeo = geoFromRequest(req);
+  // Vercel already gave us both fields: no need to query a less reliable third party.
+  if (vercelGeo.country && vercelGeo.city) return vercelGeo;
+
   const ip = publicClientIp(req);
   if (!ip) return vercelGeo;
 
@@ -97,11 +127,58 @@ export async function resolveGeoFromRequest(req: VercelRequest): Promise<{ count
 
     return {
       country,
-      city: data.city?.trim() || vercelGeo.city,
+      // Vercel's city always wins; the third party only fills the gap.
+      city: vercelGeo.city || data.city?.trim() || null,
     };
   } catch {
     return vercelGeo;
   }
+}
+
+// ── Diagnostic géolocalisation (temporaire, GEO_DEBUG=1) ──────────────────────
+// Compare plusieurs bases IP sur la même requête pour savoir laquelle localise
+// le mieux les IP concernées. Aucune donnée n'est stockée ; rien n'est envoyé
+// si la variable d'environnement GEO_DEBUG n'est pas à « 1 ».
+export type GeoSource = { name: string; country: string | null; city: string | null };
+
+const asText = (v: unknown): string | null => (typeof v === 'string' && v.trim() ? v.trim() : null);
+const asCountry = (v: unknown): string | null => {
+  const s = asText(v)?.toUpperCase();
+  return s && /^[A-Z]{2}$/.test(s) ? s : null;
+};
+
+async function fetchJson(url: string): Promise<Record<string, unknown> | null> {
+  try {
+    const r = await fetch(url, { headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(2500) });
+    if (!r.ok) return null;
+    return (await r.json()) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
+
+export async function geoSources(req: VercelRequest): Promise<GeoSource[]> {
+  const vercel = geoFromRequest(req);
+  const sources: GeoSource[] = [{ name: 'Vercel', country: vercel.country, city: vercel.city }];
+
+  const ip = publicClientIp(req);
+  if (!ip) return sources;
+
+  const id = encodeURIComponent(ip);
+  const [who, api, co, dbip] = await Promise.all([
+    fetchJson(`https://ipwho.is/${id}`),
+    fetchJson(`http://ip-api.com/json/${id}?fields=status,countryCode,city,regionName`),
+    fetchJson(`https://ipapi.co/${id}/json/`),
+    fetchJson(`https://api.db-ip.com/v2/free/${id}`),
+  ]);
+
+  sources.push(
+    { name: 'ipwho.is', country: asCountry(who?.country_code), city: asText(who?.city) },
+    { name: 'ip-api.com', country: asCountry(api?.countryCode), city: asText(api?.city) },
+    { name: 'ipapi.co', country: asCountry(co?.country_code), city: asText(co?.city) },
+    { name: 'db-ip.com', country: asCountry(dbip?.countryCode), city: asText(dbip?.city) },
+  );
+  return sources;
 }
 
 // ── Auth admin (JWT) ──────────────────────────────────────────────────────────

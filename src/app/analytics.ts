@@ -121,6 +121,14 @@ export function trackCertOpen(title: string) {
   track({ type: 'cert_open', label: title });
 }
 
+// Entreprise déclarée via la mascotte panthère (nom saisi par le visiteur).
+export function trackCompanyMascot(companyName: string) {
+  const name = companyName.trim().slice(0, 60);
+  if (name.length < 2) return;
+  ga('company_mascot', { company: name });
+  track({ type: 'company_mascot', label: name });
+}
+
 // Durée totale passée sur le portfolio : envoyée via sendBeacon pour survivre
 // à la fermeture de l'onglet.
 export function trackSessionEnd(seconds: number) {

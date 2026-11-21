@@ -50,6 +50,7 @@ interface RecentVisit {
   duration_seconds: number | null;
   is_returning: boolean | null;
   session_id: string;
+  company: string | null;
 }
 
 interface SessionEvent {
@@ -700,7 +701,8 @@ export default function AdminDashboard() {
         {s && (
           <>
             {/* Tabs */}
-            <div className="flex gap-1.5 mb-6 bg-white rounded-2xl p-1.5 border border-gray-200 shadow-sm w-full overflow-x-auto">
+            <div className="flex gap-1.5 mb-6 bg-white rounded-2xl p-1.5 border border-gray-200 shadow-sm w-full overflow-x-auto snap-x snap-mandatory"
+              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
               {TABS.map((t) => {
                 const Icon = t.icon;
                 const active = tab === t.id;
@@ -708,7 +710,7 @@ export default function AdminDashboard() {
                   <button
                     key={t.id}
                     onClick={() => setTab(t.id)}
-                    className="relative flex-1 min-w-max flex items-center justify-center gap-2 text-sm font-bold px-4 py-2.5 rounded-xl transition-colors"
+                    className="relative min-w-max snap-start flex items-center justify-center gap-2 text-sm font-bold px-3 sm:px-4 py-2.5 rounded-xl transition-colors shrink-0"
                     style={{ color: active ? '#fff' : '#4b5563' }}
                   >
                     {active && (
@@ -898,6 +900,7 @@ function eventLabel(type: string): string {
     live_demo_click: 'Demos live', scroll_depth: 'Scroll depth',
     report_open: 'Rapports consultés', report_download: 'Rapports téléchargés',
     cert_open: 'Certificats consultés', session_end: 'Fins de visite',
+    company_mascot: 'Entreprises déclarées',
   };
   return map[type] ?? type;
 }
@@ -909,12 +912,13 @@ function RecentTable({ visits, compact = false, onOpen }: {
   if (!visits.length) return <EmptyState label="Aucune visite pour le moment" />;
   const clickable = typeof onOpen === 'function';
   return (
-    <div className="overflow-x-auto mt-5">
-      <table className="w-full text-sm">
+    <div className="overflow-x-auto mt-5 -mx-4 sm:mx-0 px-4 sm:px-0" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+      <table className="w-full text-sm min-w-[560px]">
         <thead>
-          <tr className="text-gray-500 uppercase tracking-wider border-b border-gray-200">
+          <tr className="text-gray-500 uppercase tracking-wider border-b border-gray-200 whitespace-nowrap">
             <th className="text-left pb-2.5 font-bold">Quand</th>
             <th className="text-left pb-2.5 font-bold">Appareil</th>
+            {!compact && <th className="hidden md:table-cell text-left pb-2.5 font-bold">Entreprise</th>}
             {!compact && <th className="hidden md:table-cell text-left pb-2.5 font-bold">Navigateur</th>}
             {!compact && <th className="hidden lg:table-cell text-left pb-2.5 font-bold">OS</th>}
             <th className="text-left pb-2.5 font-bold" title="Ville estimée à partir de l'adresse IP, sans GPS">
@@ -950,6 +954,13 @@ function RecentTable({ visits, compact = false, onOpen }: {
                     <Dev size={14} className="text-gray-400" /> {v.device ?? '-'}
                   </span>
                 </td>
+                {!compact && (
+                  <td className="hidden md:table-cell py-3 text-gray-700 font-semibold">
+                    {v.company ?? (
+                      <span className="text-gray-400 text-xs">-</span>
+                    )}
+                  </td>
+                )}
                 {!compact && <td className="hidden md:table-cell py-3 text-gray-600">{v.browser ?? '-'}</td>}
                 {!compact && <td className="hidden lg:table-cell py-3 text-gray-600">{v.os ?? '-'}</td>}
                 <td className="py-3 text-gray-600">

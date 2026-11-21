@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { ensureSchema, resolveGeoFromRequest, sendNtfy } from './_schema';
+import { ensureSchema, resolveGeoFromRequest, geoFromRequest, sendNtfy, companyFromReferrer, geoSources, publicClientIp } from './_schema';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -22,8 +22,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const existing = await sql`SELECT id FROM visits WHERE session_id = ${sessionId} LIMIT 1`;
       if (existing.length === 0) {
         const { country, city } = await resolveGeoFromRequest(req);
-        await sql`INSERT INTO visits (session_id, device, browser, os, country, city, referrer, ref_param, lang, is_returning)
-                  VALUES (${sessionId}, ${device}, ${browser}, ${os}, ${country}, ${city}, ${referrer}, ${refParam}, ${lang}, ${!!returning})`;
+        const company = companyFromReferrer(referrer);
+        await sql`INSERT INTO visits (session_id, device, browser, os, country, city, referrer, ref_param, lang, is_returning, company)
+                  VALUES (${sessionId}, ${device}, ${browser}, ${os}, ${country}, ${city}, ${referrer}, ${refParam}, ${lang}, ${!!returning}, ${company})`;
         await sql`INSERT INTO events (session_id, type, label, value, seconds)
                   VALUES (${sessionId}, 'visit', 'arrivee', ${lang}, NULL)`;
         const src = !referrer ? 'Direct' : referrer.includes('linkedin') ? 'LinkedIn' : referrer.includes('github') ? 'GitHub' : referrer.includes('google') ? 'Google' : referrer.substring(0, 30);
@@ -35,7 +36,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           returning ? 'Visiteur de retour' : 'Nouveau visiteur',
           `Heure : ${time}`,
         ].filter(Boolean).join('\n');
-        await sendNtfy('Nouvelle visite - Portfolio', lines, 3);
+        let body = lines;
+        // Comparatif temporaire des bases IP (activer GEO_DEBUG=1 sur Vercel).
+        if (process.env.GEO_DEBUG === '1') {
+          const sources = await geoSources(req);
+          const debugIp = publicClientIp(req);
+          body += '\n\n— Diagnostic géoloc —'
+            + (debugIp ? `\nIP : ${debugIp}` : '')
+            + '\n' + sources
+              .map((s) => `${s.name} : ${[s.city, s.country].filter(Boolean).join(', ') || '—'}`)
+              .join('\n');
+        }
+        await sendNtfy('Nouvelle visite - Portfolio', body, 3);
       }
       return res.status(200).json({ ok: true });
     }
@@ -50,6 +62,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                   VALUES (${sessionId}, 'session_end', 'session', ${String(secs)}, ${secs})`;
       }
       return res.status(200).json({ ok: true });
+    }
+
+    // ── Entreprise déclarée via la mascotte ───────────────────────────────────
+    if (type === 'company_mascot') {
+      const company = String(label ?? '').trim().slice(0, 60);
+      if (company) {
+        await sql`UPDATE visits SET company = ${company} WHERE session_id = ${sessionId}`;
+        const { country, city } = geoFromRequest(req);
+        const where = [city, country].filter(Boolean).join(', ');
+        await sendNtfy(
+          'Entreprise declaree - Portfolio',
+          `Entreprise : ${company}\n${where ? `Ville estimee par IP : ${where}\n` : ''}Heure : ${time}`,
+          4,
+        );
+      }
     }
 
     // ── Autres événements ─────────────────────────────────────────────────────
