@@ -23,7 +23,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       totalVisits, prevVisits, uniqueVisitors, visitsToday, avgDuration, totalDuration, returningVisits,
       visitsByDay, visitsByDevice, visitsByReferrer, visitsByLang, visitsByCountry,
       visitsByBrowser, visitsByOs,
-      topProjects, topEvents, cvDownloads, sectionTimes, recentVisits, scrollDepths, messages,
+      topProjects, topEvents, cvDownloads, sectionTimes, recentVisits, recentCompanyLinks, scrollDepths, messages,
       topReports, topCerts,
     ] = await Promise.all([
       sql`SELECT COUNT(*)::int as count FROM visits WHERE created_at > NOW() - (${days} || ' days')::interval`,
@@ -45,6 +45,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       sql`SELECT value as version, COUNT(*)::int as count FROM events WHERE type = 'cv_download' AND created_at > NOW() - (${days} || ' days')::interval GROUP BY value`,
       sql`SELECT label as section, ROUND(AVG(seconds))::int as avg_seconds, COUNT(*)::int as count, SUM(seconds)::int as total_seconds FROM events WHERE type = 'section_time' AND seconds IS NOT NULL AND created_at > NOW() - (${days} || ' days')::interval GROUP BY label ORDER BY avg_seconds DESC`,
       sql`SELECT created_at, device, browser, os, country, city, referrer, ref_param, lang, duration_seconds, is_returning, session_id, company FROM visits ORDER BY created_at DESC LIMIT 40`,
+      sql`SELECT e.created_at, e.label AS company, e.session_id, v.city, v.country, v.device
+          FROM events e LEFT JOIN visits v ON v.session_id = e.session_id
+          WHERE e.type = 'company_link_visit' AND e.created_at > NOW() - (${days} || ' days')::interval
+          ORDER BY e.created_at DESC LIMIT 40`,
       sql`SELECT value as percent, COUNT(*)::int as count FROM events WHERE type = 'scroll_depth' AND created_at > NOW() - (${days} || ' days')::interval GROUP BY value ORDER BY value::int ASC`,
       sql`SELECT value, created_at FROM events WHERE type = 'contact_form_sent' ORDER BY created_at DESC LIMIT 20`,
       sql`SELECT label, COUNT(*)::int as count FROM events WHERE type = 'report_open' AND created_at > NOW() - (${days} || ' days')::interval GROUP BY label ORDER BY count DESC LIMIT 10`,
@@ -73,6 +77,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       cvDownloads,
       sectionTimes,
       recentVisits,
+      recentCompanyLinks,
       scrollDepths,
       messages,
       topReports,

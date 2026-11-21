@@ -21,6 +21,10 @@ function getSessionId(): string {
   return sid;
 }
 
+const PAGE_ENTRY_ID = typeof crypto !== 'undefined' && 'randomUUID' in crypto
+  ? crypto.randomUUID()
+  : `${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
+
 function isReturningVisitor(): boolean {
   try {
     const seen = localStorage.getItem('pf_visited') === '1';
@@ -41,6 +45,8 @@ function getDeviceMeta() {
     os: /Windows/i.test(ua) ? 'Windows' : /Mac/i.test(ua) ? 'macOS' : /Android/i.test(ua) ? 'Android' : /iPhone|iPad/i.test(ua) ? 'iOS' : /Linux/i.test(ua) ? 'Linux' : 'Autre',
     referrer: document.referrer || '',
     refParam: new URLSearchParams(window.location.search).get('ref') ?? '',
+    company: new URLSearchParams(window.location.search).get('c') ?? '',
+    entryId: PAGE_ENTRY_ID,
     lang: (document.documentElement.lang || 'fr').toUpperCase(),
     returning: isReturningVisitor(),
   };
@@ -58,9 +64,14 @@ async function track(payload: Record<string, unknown>) {
 
 // ── EVENTS PUBLICS ────────────────────────────────────────────────────────────
 
-export async function trackVisit() {
-  ga('portfolio_visit');
-  await track({ type: 'visit', meta: getDeviceMeta() });
+let visitRequest: Promise<void> | null = null;
+
+export function trackVisit(): Promise<void> {
+  if (!visitRequest) {
+    ga('portfolio_visit');
+    visitRequest = track({ type: 'visit', meta: getDeviceMeta() });
+  }
+  return visitRequest;
 }
 
 export function trackGithubClick(projectName: string) {
@@ -119,14 +130,6 @@ export function trackReportDownload(title: string) {
 export function trackCertOpen(title: string) {
   ga('cert_open', { title });
   track({ type: 'cert_open', label: title });
-}
-
-// Entreprise déclarée via la mascotte panthère (nom saisi par le visiteur).
-export function trackCompanyMascot(companyName: string) {
-  const name = companyName.trim().slice(0, 60);
-  if (name.length < 2) return;
-  ga('company_mascot', { company: name });
-  track({ type: 'company_mascot', label: name });
 }
 
 // Durée totale passée sur le portfolio : envoyée via sendBeacon pour survivre

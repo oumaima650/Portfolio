@@ -1,5 +1,11 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { ensureSchema, resolveGeoFromRequest, geoFromRequest, sendNtfy, companyFromReferrer, geoSources, publicClientIp } from './_schema';
+import { ensureSchema, resolveGeoFromRequest, sendNtfy, companyFromReferrer, geoSources, publicClientIp } from './_schema';
+
+function normalizeCompany(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const company = value.replace(/[\u0000-\u001F\u007F]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 60);
+  return company || null;
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -19,18 +25,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // ── Visite ────────────────────────────────────────────────────────────────
     if (type === 'visit') {
       const { device, browser, os, referrer, refParam, lang, returning } = meta ?? {};
-      const existing = await sql`SELECT id FROM visits WHERE session_id = ${sessionId} LIMIT 1`;
+      const companyFromLink = normalizeCompany(meta?.company);
+      const entryId = typeof meta?.entryId === 'string' && /^[\w-]{8,80}$/.test(meta.entryId)
+        ? meta.entryId
+        : null;
+      const existing = await sql`SELECT id, company FROM visits WHERE session_id = ${sessionId} LIMIT 1`;
       if (existing.length === 0) {
         const { country, city } = await resolveGeoFromRequest(req);
-        const company = companyFromReferrer(referrer);
+        const company = companyFromLink || companyFromReferrer(referrer);
         await sql`INSERT INTO visits (session_id, device, browser, os, country, city, referrer, ref_param, lang, is_returning, company)
                   VALUES (${sessionId}, ${device}, ${browser}, ${os}, ${country}, ${city}, ${referrer}, ${refParam}, ${lang}, ${!!returning}, ${company})`;
         await sql`INSERT INTO events (session_id, type, label, value, seconds)
                   VALUES (${sessionId}, 'visit', 'arrivee', ${lang}, NULL)`;
+        if (companyFromLink && entryId) {
+          await sql`INSERT INTO events (session_id, type, label, value, seconds)
+                    VALUES (${sessionId}, 'company_link_visit', ${companyFromLink}, ${entryId}, NULL)`;
+        }
         const src = !referrer ? 'Direct' : referrer.includes('linkedin') ? 'LinkedIn' : referrer.includes('github') ? 'GitHub' : referrer.includes('google') ? 'Google' : referrer.substring(0, 30);
         const where = [city, country].filter(Boolean).join(', ');
         const lines = [
           `${device} · ${browser} · ${os}`,
+          companyFromLink ? `Entreprise ciblée : ${companyFromLink}` : null,
           where ? `Ville estimée par IP : ${where}` : null,
           `Source : ${src}${refParam ? ` (campagne ${refParam})` : ''}`,
           returning ? 'Visiteur de retour' : 'Nouveau visiteur',
@@ -47,7 +62,35 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               .map((s) => `${s.name} : ${[s.city, s.country].filter(Boolean).join(', ') || '—'}`)
               .join('\n');
         }
-        await sendNtfy('Nouvelle visite - Portfolio', body, 3);
+        await sendNtfy(
+          companyFromLink ? `Lien de candidature - ${companyFromLink}` : 'Nouvelle visite - Portfolio',
+          body,
+          companyFromLink ? 4 : 3,
+        );
+      } else if (companyFromLink) {
+        const loggedEntry = entryId
+          ? await sql`SELECT id FROM events
+                      WHERE session_id = ${sessionId} AND type = 'company_link_visit' AND value = ${entryId}
+                      LIMIT 1`
+          : [];
+        if (loggedEntry.length === 0) {
+          await sql`UPDATE visits SET company = ${companyFromLink} WHERE session_id = ${sessionId}`;
+          if (entryId) {
+            await sql`INSERT INTO events (session_id, type, label, value, seconds)
+                      VALUES (${sessionId}, 'company_link_visit', ${companyFromLink}, ${entryId}, NULL)`;
+          }
+          const { country, city } = await resolveGeoFromRequest(req);
+          const where = [city, country].filter(Boolean).join(', ');
+          await sendNtfy(
+            `Lien de candidature - ${companyFromLink}`,
+            [
+              `Entreprise ciblée : ${companyFromLink}`,
+              where ? `Ville estimée par IP : ${where}` : null,
+              `Heure : ${time}`,
+            ].filter(Boolean).join('\n'),
+            4,
+          );
+        }
       }
       return res.status(200).json({ ok: true });
     }
@@ -62,21 +105,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                   VALUES (${sessionId}, 'session_end', 'session', ${String(secs)}, ${secs})`;
       }
       return res.status(200).json({ ok: true });
-    }
-
-    // ── Entreprise déclarée via la mascotte ───────────────────────────────────
-    if (type === 'company_mascot') {
-      const company = String(label ?? '').trim().slice(0, 60);
-      if (company) {
-        await sql`UPDATE visits SET company = ${company} WHERE session_id = ${sessionId}`;
-        const { country, city } = geoFromRequest(req);
-        const where = [city, country].filter(Boolean).join(', ');
-        await sendNtfy(
-          'Entreprise declaree - Portfolio',
-          `Entreprise : ${company}\n${where ? `Ville estimee par IP : ${where}\n` : ''}Heure : ${time}`,
-          4,
-        );
-      }
     }
 
     // ── Autres événements ─────────────────────────────────────────────────────

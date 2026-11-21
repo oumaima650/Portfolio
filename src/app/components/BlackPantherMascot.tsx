@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import { X, Send } from 'lucide-react';
-import { trackCompanyMascot } from '../analytics';
 
 /* ────────────────────────────────────────────────────────────────────────────
    RÉGLAGES RAPIDES
@@ -114,6 +113,8 @@ const NEAR_LEGS_D = [
     'C 295 200 289 196 291 188 C 294 170 292 150 286 134 ' +
     'C 283 124 286 114 294 116 Z',
 ];
+
+const LEG_SEP_D = 'M 151 126 C 157 134 160 143 156 151';
 
 // Longue queue qui retombe depuis la croupe en une seule courbe fluide.
 const TAIL_D =
@@ -265,8 +266,18 @@ function PantherSVG({
           />
         </motion.g>
 
+        {/* Pattes du plan lointain, derrière le torse. */}
+        {FAR_LEGS_D.map((d) => (
+          <path key={d} d={d} fill="#0B0812" />
+        ))}
+
         {/* Silhouette principale */}
         <path d={BODY_D} fill="url(#panther-body)" strokeLinejoin="round" />
+
+        {/* Pattes du plan proche, devant le torse. */}
+        {NEAR_LEGS_D.map((d) => (
+          <path key={d} d={d} fill="url(#panther-body)" />
+        ))}
 
         {/* Liseré lumineux : museau, front, oreilles, nuque, dos, croupe */}
         <path
@@ -387,7 +398,6 @@ export default function BlackPantherMascot({ lang }: { lang: Lang }) {
     const timer = window.setTimeout(() => {
       if (urlCompany) {
         setCompany(urlCompany);
-        trackCompanyMascot(urlCompany);
         setPhase('thanking');
       } else {
         setPhase('asking');
@@ -449,7 +459,6 @@ export default function BlackPantherMascot({ lang }: { lang: Lang }) {
     const name = input.trim().replace(/\s+/g, ' ').slice(0, MAX_COMPANY);
     if (name.length < 2) return;
     setCompany(name);
-    trackCompanyMascot(name);
     setPhase('thanking');
   };
 

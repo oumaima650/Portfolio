@@ -31,6 +31,7 @@ interface Stats {
   cvDownloads: { version: string; count: number }[];
   sectionTimes: { section: string; avg_seconds: number; count: number; total_seconds: number }[];
   recentVisits: RecentVisit[];
+  recentCompanyLinks: CompanyLinkVisit[];
   scrollDepths: { percent: string; count: number }[];
   messages: { value: string; created_at: string }[];
   topReports: { label: string; count: number }[];
@@ -51,6 +52,15 @@ interface RecentVisit {
   is_returning: boolean | null;
   session_id: string;
   company: string | null;
+}
+
+interface CompanyLinkVisit {
+  created_at: string;
+  company: string;
+  session_id: string;
+  city: string | null;
+  country: string | null;
+  device: string | null;
 }
 
 interface SessionEvent {
@@ -330,6 +340,7 @@ function describeEvent(e: SessionEvent): { icon: React.ElementType; text: string
     case 'github_click': return { icon: Github, text: `Lien GitHub : ${e.label ?? ''}` };
     case 'linkedin_click': return { icon: Linkedin, text: 'Lien LinkedIn ouvert' };
     case 'live_demo_click': return { icon: MousePointerClick, text: `Démo live : ${e.label ?? ''}` };
+    case 'company_link_visit': return { icon: MousePointerClick, text: `Lien de candidature ouvert : ${e.label ?? ''}` };
     case 'contact_form_sent': return { icon: MessageSquare, text: 'Message envoyé via le formulaire' };
     case 'visit': return { icon: Users, text: 'Arrivée sur le portfolio' };
     default: return { icon: Activity, text: e.label ?? e.type };
@@ -801,6 +812,10 @@ export default function AdminDashboard() {
                     >
                       <RecentTable visits={s.recentVisits} onOpen={setJourney} />
                     </SectionCard>
+
+                    <SectionCard title="Ouvertures des liens de candidature" icon={MousePointerClick}>
+                      <CompanyLinksTable visits={s.recentCompanyLinks} onOpen={setJourney} />
+                    </SectionCard>
                   </>
                 )}
 
@@ -901,6 +916,7 @@ function eventLabel(type: string): string {
     report_open: 'Rapports consultés', report_download: 'Rapports téléchargés',
     cert_open: 'Certificats consultés', session_end: 'Fins de visite',
     company_mascot: 'Entreprises déclarées',
+    company_link_visit: 'Liens de candidature ouverts',
   };
   return map[type] ?? type;
 }
@@ -987,6 +1003,51 @@ function RecentTable({ visits, compact = false, onOpen }: {
                     </span>
                   </td>
                 )}
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function CompanyLinksTable({ visits, onOpen }: {
+  visits: CompanyLinkVisit[]; onOpen?: (sessionId: string) => void;
+}) {
+  if (!visits.length) return <EmptyState label="Aucun lien d’entreprise ouvert pour le moment" />;
+  return (
+    <div className="overflow-x-auto mt-5 -mx-4 sm:mx-0 px-4 sm:px-0">
+      <table className="w-full text-sm min-w-[460px]">
+        <thead>
+          <tr className="text-gray-500 uppercase tracking-wider border-b border-gray-200 whitespace-nowrap">
+            <th className="text-left pb-2.5 font-bold">Quand</th>
+            <th className="text-left pb-2.5 font-bold">Entreprise ciblée</th>
+            <th className="text-left pb-2.5 font-bold">Lieu estimé</th>
+            <th className="text-left pb-2.5 font-bold">Appareil</th>
+          </tr>
+        </thead>
+        <tbody>
+          {visits.map((visit, index) => {
+            const DeviceIcon = DEVICE_ICONS[visit.device ?? ''] ?? Monitor;
+            return (
+              <tr
+                key={`${visit.session_id}-${visit.created_at}-${index}`}
+                onClick={onOpen ? () => onOpen(visit.session_id) : undefined}
+                className={`border-b border-gray-100 ${onOpen ? 'cursor-pointer hover:bg-gray-50' : ''}`}
+              >
+                <td className="py-3 pr-4 text-gray-600 whitespace-nowrap">
+                  {relativeTime(visit.created_at)}
+                </td>
+                <td className="py-3 pr-4 font-bold text-gray-900">{visit.company}</td>
+                <td className="py-3 pr-4 text-gray-600">
+                  {[visit.city, visit.country].filter(Boolean).join(', ') || '-'}
+                </td>
+                <td className="py-3 text-gray-600 whitespace-nowrap">
+                  <span className="inline-flex items-center gap-1.5">
+                    <DeviceIcon size={14} className="text-gray-400" /> {visit.device ?? '-'}
+                  </span>
+                </td>
               </tr>
             );
           })}

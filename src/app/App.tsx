@@ -17,7 +17,6 @@ import {
   type ContactErrorCode,
   type ContactField,
 } from '@/lib/contactValidation';
-import BlackPantherMascot from './components/BlackPantherMascot';
 
 // image map for projects (by id) — remplace par tes vraies images dans public/projets/
 const PROJECT_IMAGES: Record<string, string> = {
@@ -438,8 +437,6 @@ export default function App() {
   return (
     <div className="min-h-screen bg-white w-full">
       <Toaster position="top-center" richColors />
-      <BlackPantherMascot lang={lang} />
-
       {/* ── HERO ── */}
       <motion.section
         id="home"
@@ -456,7 +453,7 @@ export default function App() {
           transition={{ duration: 1.8, ease: 'easeOut', delay: 0.4 }}
           style={{ opacity: heroOpacity }}
         >
-          <img src={heroImg} alt="Oumaima Ameziane" className="w-full h-full object-cover object-[65%_30%] md:object-right" fetchPriority="high" />
+          <img src={heroImg} alt="Oumaima Ameziane" className="w-full h-full object-cover object-[65%_30%] md:object-right" fetchpriority="high" />
         </motion.div>
 
         {/* Top-left label */}
