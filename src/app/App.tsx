@@ -202,6 +202,12 @@ const CONTACT_ERROR_LABELS: Record<Lang, Record<ContactErrorCode, string>> = {
 // ── APP ───────────────────────────────────────────────────────────────────────
 export default function App() {
   const [lang, setLang] = useState<Lang>('fr');
+
+  // Synchronise l'attribut lang du document avec la langue choisie
+  // pour que l'analytics enregistre la bonne langue de visite.
+  useEffect(() => {
+    document.documentElement.lang = lang;
+  }, [lang]);
   const [showAllProjects, setShowAllProjects] = useState(false);
   const [activeSection, setActiveSection] = useState('home');
   const [selectedItem, setSelectedItem] = useState<any>(null);
@@ -345,18 +351,26 @@ export default function App() {
     let currentSection = '';
     let sectionStart = Date.now();
     const sessionStart = Date.now();
+    let sessionEnded = false;
 
     const flushSection = () => {
       if (currentSection) {
         const seconds = Math.round((Date.now() - sectionStart) / 1000);
-        trackSectionTime(currentSection, seconds);
+        if (seconds >= 3) trackSectionTime(currentSection, seconds);
         sectionStart = Date.now();
       }
     };
 
+    const endSession = () => {
+      if (sessionEnded) return;
+      sessionEnded = true;
+      flushSection();
+      trackSessionEnd(Math.max(1, Math.round((Date.now() - sessionStart) / 1000)));
+    };
+
     const observer = new IntersectionObserver(
       (entries) => entries.forEach((e) => {
-        if (e.isIntersecting) {
+        if (e.isIntersecting && e.target.id !== currentSection) {
           flushSection();
           currentSection = e.target.id;
           sectionStart = Date.now();
@@ -370,23 +384,22 @@ export default function App() {
       if (el) observer.observe(el);
     });
 
-    // À la fermeture / mise en arrière-plan de l'onglet : on enregistre le temps
-    // de la dernière section et la durée totale passée sur le portfolio.
+    // À la mise en arrière-plan de l'onglet : on enregistre le temps de la
+    // section en cours, mais PAS la fin de session (l'utilisateur peut revenir).
     const handleHide = () => {
-      if (document.visibilityState === 'hidden') {
-        flushSection();
-        trackSessionEnd(Math.round((Date.now() - sessionStart) / 1000));
-      }
+      if (document.visibilityState === 'hidden') flushSection();
     };
+    // Fermeture réelle de la page : on enregistre la durée totale.
+    const handlePageHide = () => endSession();
+
     document.addEventListener('visibilitychange', handleHide);
-    window.addEventListener('pagehide', handleHide);
+    window.addEventListener('pagehide', handlePageHide);
 
     return () => {
       observer.disconnect();
       document.removeEventListener('visibilitychange', handleHide);
-      window.removeEventListener('pagehide', handleHide);
-      flushSection();
-      trackSessionEnd(Math.round((Date.now() - sessionStart) / 1000));
+      window.removeEventListener('pagehide', handlePageHide);
+      endSession();
     };
   }, []);
 

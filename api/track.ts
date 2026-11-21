@@ -31,7 +31,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         : null;
       const existing = await sql`SELECT id, company FROM visits WHERE session_id = ${sessionId} LIMIT 1`;
       if (existing.length === 0) {
-        const { country, city } = await resolveGeoFromRequest(req);
+        const debugSources = process.env.GEO_DEBUG === '1' ? await geoSources(req) : undefined;
+        const { country, city, region } = await resolveGeoFromRequest(req, debugSources);
         const company = companyFromLink || companyFromReferrer(referrer);
         await sql`INSERT INTO visits (session_id, device, browser, os, country, city, referrer, ref_param, lang, is_returning, company)
                   VALUES (${sessionId}, ${device}, ${browser}, ${os}, ${country}, ${city}, ${referrer}, ${refParam}, ${lang}, ${!!returning}, ${company})`;
@@ -42,7 +43,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     VALUES (${sessionId}, 'company_link_visit', ${companyFromLink}, ${entryId}, NULL)`;
         }
         const src = !referrer ? 'Direct' : referrer.includes('linkedin') ? 'LinkedIn' : referrer.includes('github') ? 'GitHub' : referrer.includes('google') ? 'Google' : referrer.substring(0, 30);
-        const where = [city, country].filter(Boolean).join(', ');
+        const where = [city, region ? `région ${region}` : null, country].filter(Boolean).join(', ');
         const lines = [
           `${device} · ${browser} · ${os}`,
           companyFromLink ? `Entreprise ciblée : ${companyFromLink}` : null,
@@ -53,13 +54,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         ].filter(Boolean).join('\n');
         let body = lines;
         // Comparatif temporaire des bases IP (activer GEO_DEBUG=1 sur Vercel).
-        if (process.env.GEO_DEBUG === '1') {
-          const sources = await geoSources(req);
+        if (debugSources) {
           const debugIp = publicClientIp(req);
           body += '\n\n— Diagnostic géoloc —'
             + (debugIp ? `\nIP : ${debugIp}` : '')
-            + '\n' + sources
-              .map((s) => `${s.name} : ${[s.city, s.country].filter(Boolean).join(', ') || '—'}`)
+            + '\n' + debugSources
+              .map((s) => `${s.name} : ${[s.city, s.region ? `région ${s.region}` : null, s.country].filter(Boolean).join(', ') || '—'}`)
               .join('\n');
         }
         await sendNtfy(
@@ -74,13 +74,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                       LIMIT 1`
           : [];
         if (loggedEntry.length === 0) {
-          await sql`UPDATE visits SET company = ${companyFromLink} WHERE session_id = ${sessionId}`;
+          const { country, city, region } = await resolveGeoFromRequest(req);
+          await sql`UPDATE visits SET company = ${companyFromLink},
+                    city = COALESCE(${city}, city), country = COALESCE(${country}, country)
+                    WHERE session_id = ${sessionId}`;
           if (entryId) {
             await sql`INSERT INTO events (session_id, type, label, value, seconds)
                       VALUES (${sessionId}, 'company_link_visit', ${companyFromLink}, ${entryId}, NULL)`;
           }
-          const { country, city } = await resolveGeoFromRequest(req);
-          const where = [city, country].filter(Boolean).join(', ');
+          const where = [city, region ? `région ${region}` : null, country].filter(Boolean).join(', ');
           await sendNtfy(
             `Lien de candidature - ${companyFromLink}`,
             [

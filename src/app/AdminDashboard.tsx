@@ -352,10 +352,12 @@ function SessionJourney({ token, sessionId, onClose }: {
 }) {
   const [data, setData] = useState<{ visit: RecentVisit | null; events: SessionEvent[] } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showAll, setShowAll] = useState(false);
 
   useEffect(() => {
     let alive = true;
     setLoading(true);
+    setShowAll(false);
     fetch(`/api/admin-session?s=${encodeURIComponent(sessionId)}`, { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => r.json())
       .then((d) => { if (alive) setData(d); })
@@ -376,6 +378,18 @@ function SessionJourney({ token, sessionId, onClose }: {
     return Object.entries(map).sort((a, b) => b[1] - a[1]);
   }, [data]);
 
+  // Durée cumulée des sections (fiable même si session_end n'a pas été enregistré).
+  const sectionsTotal = useMemo(
+    () => (data?.events ?? []).reduce((sum, e) => sum + (e.type === 'section_time' ? (e.seconds ?? 0) : 0), 0),
+    [data],
+  );
+  const displayedDuration = Math.max(totalDur, sectionsTotal);
+
+  // Aperçu des actions : 5 premières, puis "Voir plus".
+  const PREVIEW_COUNT = 5;
+  const visibleEvents = showAll ? events : events.slice(0, PREVIEW_COUNT);
+  const hasMore = events.length > PREVIEW_COUNT;
+
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-3 md:p-6">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
@@ -394,7 +408,7 @@ function SessionJourney({ token, sessionId, onClose }: {
             <div className="min-w-0">
               <h3 className="text-base sm:text-lg font-black text-gray-900">Parcours de la visite</h3>
               <p className="text-xs text-gray-500 truncate">
-                {visit ? `${new Date(visit.created_at).toLocaleString('fr-FR')} · durée ${fmtDur(totalDur)}` : sessionId}
+                {visit ? `${new Date(visit.created_at).toLocaleString('fr-FR')} · durée ${fmtDur(displayedDuration)}` : sessionId}
               </p>
             </div>
           </div>
@@ -426,7 +440,7 @@ function SessionJourney({ token, sessionId, onClose }: {
               <div className="grid grid-cols-2 gap-3 mb-5">
                 <div className="rounded-xl border border-gray-200 p-4">
                   <div className="text-[11px] uppercase tracking-wider font-bold text-gray-500">Temps sur le site</div>
-                  <div className="text-2xl font-black text-gray-900 mt-1">{fmtDur(totalDur)}</div>
+                  <div className="text-2xl font-black text-gray-900 mt-1">{fmtDur(displayedDuration)}</div>
                 </div>
                 <div className="rounded-xl border border-gray-200 p-4">
                   <div className="text-[11px] uppercase tracking-wider font-bold text-gray-500">Actions réalisées</div>
@@ -457,15 +471,16 @@ function SessionJourney({ token, sessionId, onClose }: {
                 <EmptyState label="Aucune action enregistrée" />
               ) : (
                 <div>
-                  {events.map((e, i) => {
+                  {visibleEvents.map((e, i) => {
                     const { icon: Icon, text, detail } = describeEvent(e);
+                    const isLastVisible = i === visibleEvents.length - 1;
                     return (
                       <div key={i} className="flex gap-3">
                         <div className="flex flex-col items-center">
                           <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: `${PINK}12` }}>
                             <Icon size={13} style={{ color: PINK }} />
                           </div>
-                          {i < events.length - 1 && <div className="w-px flex-1 bg-gray-100 my-1" />}
+                          {!isLastVisible && <div className="w-px flex-1 bg-gray-100 my-1" />}
                         </div>
                         <div className="pb-4 flex-1 min-w-0">
                           <div className="flex items-start justify-between gap-3">
@@ -477,6 +492,15 @@ function SessionJourney({ token, sessionId, onClose }: {
                       </div>
                     );
                   })}
+                  {hasMore && (
+                    <button
+                      onClick={() => setShowAll((s) => !s)}
+                      className="mt-2 w-full py-2.5 rounded-xl text-xs font-bold transition-colors"
+                      style={{ backgroundColor: `${PINK}12`, color: PINK }}
+                    >
+                      {showAll ? 'Voir moins' : `Voir plus (${events.length - PREVIEW_COUNT} autres)`}
+                    </button>
+                  )}
                 </div>
               )}
             </>

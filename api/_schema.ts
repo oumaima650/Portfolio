@@ -96,39 +96,47 @@ export function publicClientIp(req: VercelRequest): string | null {
   return null;
 }
 
-// Vercel's own headers are the primary source (its geo database is more
-// reliable than third parties, which often misplace entire ISP blocks).
-// The external lookup is best-effort and only fills in what Vercel omits.
-export async function resolveGeoFromRequest(req: VercelRequest): Promise<{ country: string | null; city: string | null }> {
-  const vercelGeo = geoFromRequest(req);
-  // Vercel already gave us both fields: no need to query a less reliable third party.
-  if (vercelGeo.country && vercelGeo.city) return vercelGeo;
+export type GeoSource = {
+  name: string;
+  country: string | null;
+  city: string | null;
+  region?: string | null;
+};
 
+// Use a city only when ipwho.is and ip-api.com agree for the same client IP.
+// If they disagree, retain Vercel's estimate instead of guessing.
+export async function resolveGeoFromRequest(
+  req: VercelRequest,
+  knownSources?: GeoSource[],
+): Promise<{ country: string | null; city: string | null; region?: string | null }> {
+  const vercelGeo = geoFromRequest(req);
   const ip = publicClientIp(req);
   if (!ip) return vercelGeo;
 
   try {
-    const response = await fetch(`https://ipwho.is/${encodeURIComponent(ip)}`, {
-      headers: { Accept: 'application/json' },
-      signal: AbortSignal.timeout(1800),
-    });
-    if (!response.ok) return vercelGeo;
+    const primarySources = knownSources?.filter((source) =>
+      source.name === 'ipwho.is' || source.name === 'ip-api.com',
+    ) ?? await fetchPrimaryGeoSources(ip);
+    const who = primarySources.find((source) => source.name === 'ipwho.is');
+    const api = primarySources.find((source) => source.name === 'ip-api.com');
+    const country = who?.country;
+    const city = who?.city;
+    const apiCity = api?.city;
+    const normalized = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
 
-    const data = await response.json() as {
-      success?: boolean;
-      country_code?: string;
-      city?: string;
-    };
-    const country = data.country_code?.toUpperCase();
-    if (!data.success || !country || !/^[A-Z]{2}$/.test(country)) return vercelGeo;
-
-    // Keep Vercel's location if providers disagree on the country.
-    if (vercelGeo.country && vercelGeo.country.toUpperCase() !== country) return vercelGeo;
+    if (
+      !country ||
+      country !== api?.country ||
+      !city ||
+      !apiCity ||
+      normalized(city) !== normalized(apiCity) ||
+      (vercelGeo.country && vercelGeo.country.toUpperCase() !== country)
+    ) return vercelGeo;
 
     return {
       country,
-      // Vercel's city always wins; the third party only fills the gap.
-      city: vercelGeo.city || data.city?.trim() || null,
+      city,
+      region: who?.region || api?.region || null,
     };
   } catch {
     return vercelGeo;
@@ -139,8 +147,6 @@ export async function resolveGeoFromRequest(req: VercelRequest): Promise<{ count
 // Compare plusieurs bases IP sur la même requête pour savoir laquelle localise
 // le mieux les IP concernées. Aucune donnée n'est stockée ; rien n'est envoyé
 // si la variable d'environnement GEO_DEBUG n'est pas à « 1 ».
-export type GeoSource = { name: string; country: string | null; city: string | null };
-
 const asText = (v: unknown): string | null => (typeof v === 'string' && v.trim() ? v.trim() : null);
 const asCountry = (v: unknown): string | null => {
   const s = asText(v)?.toUpperCase();
@@ -157,6 +163,28 @@ async function fetchJson(url: string): Promise<Record<string, unknown> | null> {
   }
 }
 
+async function fetchPrimaryGeoSources(ip: string): Promise<GeoSource[]> {
+  const id = encodeURIComponent(ip);
+  const [who, api] = await Promise.all([
+    fetchJson(`https://ipwho.is/${id}`),
+    fetchJson(`http://ip-api.com/json/${id}?fields=status,countryCode,city,regionName`),
+  ]);
+  return [
+    {
+      name: 'ipwho.is',
+      country: who?.success === true ? asCountry(who.country_code) : null,
+      city: who?.success === true ? asText(who.city) : null,
+      region: who?.success === true ? asText(who.region) : null,
+    },
+    {
+      name: 'ip-api.com',
+      country: api?.status === 'success' ? asCountry(api.countryCode) : null,
+      city: api?.status === 'success' ? asText(api.city) : null,
+      region: api?.status === 'success' ? asText(api.regionName) : null,
+    },
+  ];
+}
+
 export async function geoSources(req: VercelRequest): Promise<GeoSource[]> {
   const vercel = geoFromRequest(req);
   const sources: GeoSource[] = [{ name: 'Vercel', country: vercel.country, city: vercel.city }];
@@ -165,16 +193,14 @@ export async function geoSources(req: VercelRequest): Promise<GeoSource[]> {
   if (!ip) return sources;
 
   const id = encodeURIComponent(ip);
-  const [who, api, co, dbip] = await Promise.all([
-    fetchJson(`https://ipwho.is/${id}`),
-    fetchJson(`http://ip-api.com/json/${id}?fields=status,countryCode,city,regionName`),
+  const [primary, co, dbip] = await Promise.all([
+    fetchPrimaryGeoSources(ip),
     fetchJson(`https://ipapi.co/${id}/json/`),
     fetchJson(`https://api.db-ip.com/v2/free/${id}`),
   ]);
 
   sources.push(
-    { name: 'ipwho.is', country: asCountry(who?.country_code), city: asText(who?.city) },
-    { name: 'ip-api.com', country: asCountry(api?.countryCode), city: asText(api?.city) },
+    ...primary,
     { name: 'ipapi.co', country: asCountry(co?.country_code), city: asText(co?.city) },
     { name: 'db-ip.com', country: asCountry(dbip?.countryCode), city: asText(dbip?.city) },
   );
