@@ -45,6 +45,8 @@ interface RecentVisit {
   os: string | null;
   country: string | null;
   city: string | null;
+  region: string | null;
+  isp: string | null;
   referrer: string | null;
   ref_param: string | null;
   lang: string | null;
@@ -59,6 +61,7 @@ interface CompanyLinkVisit {
   company: string;
   session_id: string;
   city: string | null;
+  region: string | null;
   country: string | null;
   device: string | null;
 }
@@ -94,6 +97,12 @@ const countryLabel = (code: string) => {
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+// Localisation : ville marquée « ≈ » (estimation IP), région et pays fiables.
+function fmtPlace(parts: { city?: string | null; region?: string | null; country?: string | null }): string {
+  const city = parts.city ? `≈ ${parts.city}` : null;
+  return [city, parts.region, parts.country].filter(Boolean).join(', ') || '-';
+}
+
 function trendPct(current: number, previous: number): number | null {
   if (previous === 0) return current > 0 ? 100 : null;
   return Math.round(((current - previous) / previous) * 100);
@@ -428,7 +437,8 @@ function SessionJourney({ token, sessionId, onClose }: {
               <div className="flex flex-wrap gap-2 mb-5">
                 {[
                   visit.device, visit.browser, visit.os,
-                  [visit.city, visit.country].filter(Boolean).join(', ') || null,
+                  fmtPlace(visit) !== '-' ? fmtPlace(visit) : null,
+                  visit.isp ? `Opérateur ${visit.isp}` : null,
                   visit.is_returning ? 'Visiteur de retour' : 'Nouveau visiteur',
                   `Langue ${visit.lang ?? '-'}`,
                 ].filter(Boolean).map((chip, i) => (
@@ -1006,7 +1016,7 @@ function RecentTable({ visits, compact = false, onOpen }: {
                 <td className="py-3 text-gray-600">
                   <span className="inline-flex items-center gap-1">
                     <MapPin size={13} className="text-gray-400" />
-                    {[v.city, v.country].filter(Boolean).join(', ') || '-'}
+                    {fmtPlace(v)}
                   </span>
                 </td>
                 <td className="hidden sm:table-cell py-3">
@@ -1065,7 +1075,7 @@ function CompanyLinksTable({ visits, onOpen }: {
                 </td>
                 <td className="py-3 pr-4 font-bold text-gray-900">{visit.company}</td>
                 <td className="py-3 pr-4 text-gray-600">
-                  {[visit.city, visit.country].filter(Boolean).join(', ') || '-'}
+                  {fmtPlace(visit)}
                 </td>
                 <td className="py-3 text-gray-600 whitespace-nowrap">
                   <span className="inline-flex items-center gap-1.5">

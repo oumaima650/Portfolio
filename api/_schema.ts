@@ -10,12 +10,15 @@ export async function ensureSchema(sql: Sql) {
   await sql`CREATE TABLE IF NOT EXISTS visits (
     id SERIAL PRIMARY KEY, created_at TIMESTAMPTZ DEFAULT NOW(),
     device TEXT, browser TEXT, os TEXT, country TEXT, city TEXT,
+    region TEXT, isp TEXT,
     referrer TEXT, ref_param TEXT, lang TEXT, session_id TEXT UNIQUE,
     duration_seconds INTEGER, is_returning BOOLEAN DEFAULT FALSE,
     company TEXT
   )`;
   await sql`ALTER TABLE visits ADD COLUMN IF NOT EXISTS country TEXT`;
   await sql`ALTER TABLE visits ADD COLUMN IF NOT EXISTS city TEXT`;
+  await sql`ALTER TABLE visits ADD COLUMN IF NOT EXISTS region TEXT`;
+  await sql`ALTER TABLE visits ADD COLUMN IF NOT EXISTS isp TEXT`;
   await sql`ALTER TABLE visits ADD COLUMN IF NOT EXISTS duration_seconds INTEGER`;
   await sql`ALTER TABLE visits ADD COLUMN IF NOT EXISTS is_returning BOOLEAN DEFAULT FALSE`;
   await sql`ALTER TABLE visits ADD COLUMN IF NOT EXISTS company TEXT`;
@@ -101,17 +104,20 @@ export type GeoSource = {
   country: string | null;
   city: string | null;
   region?: string | null;
+  isp?: string | null;
 };
 
-// Use a city only when ipwho.is and ip-api.com agree for the same client IP.
-// If they disagree, retain Vercel's estimate instead of guessing.
+// Résout la localisation à partir de l'IP.
+// La ville reste une estimation peu fiable : on ne l'affiche que si ipwho.is et
+// ip-api.com s'accordent. En revanche la région et l'opérateur (FAI) sont
+// toujours fournis, car ils restent justes même quand la ville est fausse.
 export async function resolveGeoFromRequest(
   req: VercelRequest,
   knownSources?: GeoSource[],
-): Promise<{ country: string | null; city: string | null; region?: string | null }> {
+): Promise<{ country: string | null; city: string | null; region: string | null; isp: string | null }> {
   const vercelGeo = geoFromRequest(req);
   const ip = publicClientIp(req);
-  if (!ip) return vercelGeo;
+  if (!ip) return { ...vercelGeo, region: null, isp: null };
 
   try {
     const primarySources = knownSources?.filter((source) =>
@@ -119,27 +125,26 @@ export async function resolveGeoFromRequest(
     ) ?? await fetchPrimaryGeoSources(ip);
     const who = primarySources.find((source) => source.name === 'ipwho.is');
     const api = primarySources.find((source) => source.name === 'ip-api.com');
-    const country = who?.country;
-    const city = who?.city;
-    const apiCity = api?.city;
     const normalized = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
 
-    if (
-      !country ||
-      country !== api?.country ||
-      !city ||
-      !apiCity ||
-      normalized(city) !== normalized(apiCity) ||
-      (vercelGeo.country && vercelGeo.country.toUpperCase() !== country)
-    ) return vercelGeo;
+    const country = who?.country ?? api?.country ?? vercelGeo.country;
+    const countryConsistent = !vercelGeo.country || !country || vercelGeo.country.toUpperCase() === country;
+
+    // La ville n'est retenue que si les deux bases concordent (ville + pays).
+    const cityAgreed =
+      countryConsistent &&
+      !!who?.city && !!api?.city &&
+      who.country === api.country &&
+      normalized(who.city) === normalized(api.city);
 
     return {
       country,
-      city,
-      region: who?.region || api?.region || null,
+      city: cityAgreed ? who.city : vercelGeo.city,
+      region: countryConsistent ? (who?.region ?? api?.region ?? null) : null,
+      isp: countryConsistent ? (api?.isp ?? who?.isp ?? null) : null,
     };
   } catch {
-    return vercelGeo;
+    return { ...vercelGeo, region: null, isp: null };
   }
 }
 
@@ -167,20 +172,23 @@ async function fetchPrimaryGeoSources(ip: string): Promise<GeoSource[]> {
   const id = encodeURIComponent(ip);
   const [who, api] = await Promise.all([
     fetchJson(`https://ipwho.is/${id}`),
-    fetchJson(`http://ip-api.com/json/${id}?fields=status,countryCode,city,regionName`),
+    fetchJson(`http://ip-api.com/json/${id}?fields=status,countryCode,city,regionName,isp`),
   ]);
+  const whoConnection = (who?.connection ?? null) as Record<string, unknown> | null;
   return [
     {
       name: 'ipwho.is',
       country: who?.success === true ? asCountry(who.country_code) : null,
       city: who?.success === true ? asText(who.city) : null,
       region: who?.success === true ? asText(who.region) : null,
+      isp: who?.success === true ? (asText(whoConnection?.isp) ?? asText(whoConnection?.org)) : null,
     },
     {
       name: 'ip-api.com',
       country: api?.status === 'success' ? asCountry(api.countryCode) : null,
       city: api?.status === 'success' ? asText(api.city) : null,
       region: api?.status === 'success' ? asText(api.regionName) : null,
+      isp: api?.status === 'success' ? asText(api.isp) : null,
     },
   ];
 }

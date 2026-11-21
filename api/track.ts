@@ -32,10 +32,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const existing = await sql`SELECT id, company FROM visits WHERE session_id = ${sessionId} LIMIT 1`;
       if (existing.length === 0) {
         const debugSources = process.env.GEO_DEBUG === '1' ? await geoSources(req) : undefined;
-        const { country, city, region } = await resolveGeoFromRequest(req, debugSources);
+        const { country, city, region, isp } = await resolveGeoFromRequest(req, debugSources);
         const company = companyFromLink || companyFromReferrer(referrer);
-        await sql`INSERT INTO visits (session_id, device, browser, os, country, city, referrer, ref_param, lang, is_returning, company)
-                  VALUES (${sessionId}, ${device}, ${browser}, ${os}, ${country}, ${city}, ${referrer}, ${refParam}, ${lang}, ${!!returning}, ${company})`;
+        await sql`INSERT INTO visits (session_id, device, browser, os, country, city, region, isp, referrer, ref_param, lang, is_returning, company)
+                  VALUES (${sessionId}, ${device}, ${browser}, ${os}, ${country}, ${city}, ${region}, ${isp}, ${referrer}, ${refParam}, ${lang}, ${!!returning}, ${company})`;
         await sql`INSERT INTO events (session_id, type, label, value, seconds)
                   VALUES (${sessionId}, 'visit', 'arrivee', ${lang}, NULL)`;
         if (companyFromLink && entryId) {
@@ -43,11 +43,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     VALUES (${sessionId}, 'company_link_visit', ${companyFromLink}, ${entryId}, NULL)`;
         }
         const src = !referrer ? 'Direct' : referrer.includes('linkedin') ? 'LinkedIn' : referrer.includes('github') ? 'GitHub' : referrer.includes('google') ? 'Google' : referrer.substring(0, 30);
-        const where = [city, region ? `région ${region}` : null, country].filter(Boolean).join(', ');
+        const where = [city ? `≈ ${city}` : null, region ? `région ${region}` : null, country].filter(Boolean).join(', ');
         const lines = [
           `${device} · ${browser} · ${os}`,
           companyFromLink ? `Entreprise ciblée : ${companyFromLink}` : null,
-          where ? `Ville estimée par IP : ${where}` : null,
+          where ? `Localisation (estimation IP) : ${where}` : null,
+          isp ? `Opérateur : ${isp}` : null,
           `Source : ${src}${refParam ? ` (campagne ${refParam})` : ''}`,
           returning ? 'Visiteur de retour' : 'Nouveau visiteur',
           `Heure : ${time}`,
@@ -74,20 +75,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                       LIMIT 1`
           : [];
         if (loggedEntry.length === 0) {
-          const { country, city, region } = await resolveGeoFromRequest(req);
+          const { country, city, region, isp } = await resolveGeoFromRequest(req);
           await sql`UPDATE visits SET company = ${companyFromLink},
-                    city = COALESCE(${city}, city), country = COALESCE(${country}, country)
+                    city = COALESCE(${city}, city), country = COALESCE(${country}, country),
+                    region = COALESCE(${region}, region), isp = COALESCE(${isp}, isp)
                     WHERE session_id = ${sessionId}`;
           if (entryId) {
             await sql`INSERT INTO events (session_id, type, label, value, seconds)
                       VALUES (${sessionId}, 'company_link_visit', ${companyFromLink}, ${entryId}, NULL)`;
           }
-          const where = [city, region ? `région ${region}` : null, country].filter(Boolean).join(', ');
+          const where = [city ? `≈ ${city}` : null, region ? `région ${region}` : null, country].filter(Boolean).join(', ');
           await sendNtfy(
             `Lien de candidature - ${companyFromLink}`,
             [
               `Entreprise ciblée : ${companyFromLink}`,
-              where ? `Ville estimée par IP : ${where}` : null,
+              where ? `Localisation (estimation IP) : ${where}` : null,
+              isp ? `Opérateur : ${isp}` : null,
               `Heure : ${time}`,
             ].filter(Boolean).join('\n'),
             4,
